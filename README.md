@@ -1,1 +1,2 @@
-# vcv-snoopy
+
+# VCV plugin
