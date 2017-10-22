@@ -1,6 +1,25 @@
 #include "Snoopy.hpp"
 #include "dsp/digital.hpp"
 
+static long _frameCount = 0;
+void write_log(long freq, const char *format, ...)
+{
+    if (freq == 0)
+        freq++;
+
+    if (_frameCount % freq == 0)
+    {
+        va_list args;
+        va_start(args, format);
+
+        printf("%ld: ", _frameCount);
+        vprintf(format, args);
+        fflush(stdout);
+
+        va_end(args);
+    }
+}
+
 struct SEQ : Module
 {
     enum ParamIds
@@ -35,13 +54,16 @@ struct SEQ : Module
 
     bool running = true;
     SchmittTrigger clockTrigger; // for external clock
+
     // For buttons
     SchmittTrigger runningTrigger;
     SchmittTrigger resetTrigger;
-    SchmittTrigger gateTriggers[8];
     float phase = 0.0;
     int index = 0;
-    bool gateState[8] = {};
+
+    // TODO
+    SchmittTrigger gateTriggers[8];
+    bool gateState[8] = {0};
     float stepLights[8] = {};
 
     enum GateMode
@@ -56,6 +78,8 @@ struct SEQ : Module
     // Lights
     float runningLight = 0.0;
     float resetLight = 0.0;
+
+    // TODO
     float gatesLight = 0.0;
     float rowLights[3] = {};
     float gateLights[8] = {};
@@ -130,6 +154,8 @@ struct SEQ : Module
 
 void SEQ::step()
 {
+    _frameCount++;
+
     const float lightLambda = 0.075;
     // Run
     if (runningTrigger.process(params[RUN_PARAM].value))
@@ -195,6 +221,7 @@ void SEQ::step()
     {
         if (gateTriggers[i].process(params[GATE_PARAM + i].value))
         {
+            write_log(0, "v %d %f\n", i, params[GATE_PARAM + i].value);
             gateState[i] = !gateState[i];
         }
         bool gateOn = (running && i == index && gateState[i]);
@@ -207,6 +234,8 @@ void SEQ::step()
         stepLights[i] -= stepLights[i] / lightLambda / gSampleRate;
         gateLights[i] = gateState[i] ? 1.0 - stepLights[i] : stepLights[i];
     }
+
+    write_log(40000, "g trigger %d %d %d %d\n", gateState[0], gateState[1], gateState[2], gateState[3]);
 
     // Rows
     float row1 = params[ROW1_PARAM + index].value;
@@ -247,9 +276,12 @@ SEQWidget::SEQWidget()
     addChild(createScrew<ScrewSilver>(Vec(15, 365)));
     addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
 
-    addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
+    // Understood
     addParam(createParam<LEDButton>(Vec(60, 61 - 1), module, SEQ::RUN_PARAM, 0.0, 1.0, 0.0));
+    addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(65, 65), &module->runningLight));
+
+    // TODO:
     addParam(createParam<LEDButton>(Vec(99, 61 - 1), module, SEQ::RESET_PARAM, 0.0, 1.0, 0.0));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(104, 65), &module->resetLight));
     addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 1.0, 8.0, 8.0));
@@ -258,9 +290,12 @@ SEQWidget::SEQWidget()
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &module->rowLights[1]));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(296, 65), &module->rowLights[2]));
 
+    // Understood
     static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289};
     addInput(createInput<PJ301MPort>(Vec(portX[0] - 1, 98), module, SEQ::CLOCK_INPUT));
     addInput(createInput<PJ301MPort>(Vec(portX[1] - 1, 98), module, SEQ::EXT_CLOCK_INPUT));
+
+    // TODO:
     addInput(createInput<PJ301MPort>(Vec(portX[2] - 1, 98), module, SEQ::RESET_INPUT));
     addInput(createInput<PJ301MPort>(Vec(portX[3] - 1, 98), module, SEQ::STEPS_INPUT));
     addOutput(createOutput<PJ301MPort>(Vec(portX[4] - 1, 98), module, SEQ::GATES_OUTPUT));
