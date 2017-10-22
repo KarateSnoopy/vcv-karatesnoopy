@@ -214,7 +214,7 @@ SEQWidget::SEQWidget() {
 	{
 		SVGPanel *panel = new SVGPanel();
 		panel->box.size = box.size;
-		panel->setBackground(SVG::load(assetPlugin(plugin, "res/SEQ.svg")));
+		panel->setBackground(SVG::load(assetPlugin(plugin, "res/SeqModule.svg")));
 		addChild(panel);
 	}
 
