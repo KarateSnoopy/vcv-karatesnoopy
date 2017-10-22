@@ -20,6 +20,49 @@ void write_log(long freq, const char *format, ...)
     }
 }
 
+struct Light2 : TransparentWidget
+{
+    NVGcolor bgColor = nvgRGBf(0, 0, 0);
+    NVGcolor color = nvgRGBf(1, 1, 1);
+    void draw(NVGcontext *vg);
+};
+
+void Light2::draw(NVGcontext *vg)
+{
+    float radius = box.size.x / 2.0;
+    float oradius = radius + 20.0;
+
+    // Solid
+    nvgBeginPath(vg);
+    nvgCircle(vg, radius, radius, radius);
+    nvgFillColor(vg, bgColor);
+    nvgFill(vg);
+
+    // Border
+    nvgStrokeWidth(vg, 1.0);
+    NVGcolor borderColor = bgColor;
+    borderColor.a *= 0.5;
+    nvgStrokeColor(vg, borderColor);
+    nvgStroke(vg);
+
+    // Inner glow
+    nvgGlobalCompositeOperation(vg, NVG_LIGHTER);
+    nvgFillColor(vg, color);
+    nvgFill(vg);
+
+    // Outer glow
+    nvgBeginPath(vg);
+    nvgRect(vg, radius - oradius, radius - oradius, 2 * oradius, 2 * oradius);
+    NVGpaint paint;
+    NVGcolor icol = color;
+    icol.a *= 0.15;
+    NVGcolor ocol = color;
+    ocol.a = 0.0;
+    paint = nvgRadialGradient(vg, radius, radius, radius, oradius, icol, ocol);
+    nvgFillPaint(vg, paint);
+    nvgFill(vg);
+}
+
 struct SEQ : Module
 {
     enum ParamIds
@@ -221,7 +264,7 @@ void SEQ::step()
     {
         if (gateTriggers[i].process(params[GATE_PARAM + i].value))
         {
-            write_log(0, "v %d %f\n", i, params[GATE_PARAM + i].value);
+            //write_log(0, "v %d %f\n", i, params[GATE_PARAM + i].value);
             gateState[i] = !gateState[i];
         }
         bool gateOn = (running && i == index && gateState[i]);
@@ -235,7 +278,7 @@ void SEQ::step()
         gateLights[i] = gateState[i] ? 1.0 - stepLights[i] : stepLights[i];
     }
 
-    write_log(40000, "g trigger %d %d %d %d\n", gateState[0], gateState[1], gateState[2], gateState[3]);
+    //write_log(40000, "g trigger %d %d %d %d\n", gateState[0], gateState[1], gateState[2], gateState[3]);
 
     // Rows
     float row1 = params[ROW1_PARAM + index].value;
@@ -271,17 +314,9 @@ SEQWidget::SEQWidget()
         addChild(panel);
     }
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x - 30, 365)));
-
-    // Understood
-    addParam(createParam<LEDButton>(Vec(60, 61 - 1), module, SEQ::RUN_PARAM, 0.0, 1.0, 0.0));
     addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
+    addParam(createParam<LEDButton>(Vec(60, 61 - 1), module, SEQ::RUN_PARAM, 0.0, 1.0, 0.0));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(65, 65), &module->runningLight));
-
-    // TODO:
     addParam(createParam<LEDButton>(Vec(99, 61 - 1), module, SEQ::RESET_PARAM, 0.0, 1.0, 0.0));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(104, 65), &module->resetLight));
     addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 1.0, 8.0, 8.0));
@@ -290,12 +325,9 @@ SEQWidget::SEQWidget()
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &module->rowLights[1]));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(296, 65), &module->rowLights[2]));
 
-    // Understood
     static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289};
     addInput(createInput<PJ301MPort>(Vec(portX[0] - 1, 98), module, SEQ::CLOCK_INPUT));
     addInput(createInput<PJ301MPort>(Vec(portX[1] - 1, 98), module, SEQ::EXT_CLOCK_INPUT));
-
-    // TODO:
     addInput(createInput<PJ301MPort>(Vec(portX[2] - 1, 98), module, SEQ::RESET_INPUT));
     addInput(createInput<PJ301MPort>(Vec(portX[3] - 1, 98), module, SEQ::STEPS_INPUT));
     addOutput(createOutput<PJ301MPort>(Vec(portX[4] - 1, 98), module, SEQ::GATES_OUTPUT));
@@ -305,12 +337,13 @@ SEQWidget::SEQWidget()
 
     for (int i = 0; i < 8; i++)
     {
-        addParam(createParam<Davies1900hSmallBlackKnob>(Vec(portX[i] - 2, 157), module, SEQ::ROW1_PARAM + i, 0.0, 6.0, 0.0));
-        addParam(createParam<Davies1900hSmallBlackKnob>(Vec(portX[i] - 2, 198), module, SEQ::ROW2_PARAM + i, 0.0, 6.0, 0.0));
-        addParam(createParam<Davies1900hSmallBlackKnob>(Vec(portX[i] - 2, 240), module, SEQ::ROW3_PARAM + i, 0.0, 6.0, 0.0));
-        addParam(createParam<LEDButton>(Vec(portX[i] + 2, 278 - 1), module, SEQ::GATE_PARAM + i, 0.0, 1.0, 0.0));
-        addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(portX[i] + 7, 282), &module->gateLights[i]));
-        addOutput(createOutput<PJ301MPort>(Vec(portX[i] - 1, 307), module, SEQ::GATE_OUTPUT + i));
+        int x = portX[i] - 2;
+        int y = 157;
+        addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::ROW1_PARAM + i, 0.0, 6.0, 0.0));
+        x += 10;
+        y += 10;
+        //addParam(createParam<LEDButton>(Vec(x, y), module, SEQ::GATE_PARAM + i, 0.0, 1.0, 0.0));
+        addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 5, y + 5), &module->gateLights[i]));
     }
 }
 
