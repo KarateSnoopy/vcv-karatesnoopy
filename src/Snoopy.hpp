@@ -10,6 +10,7 @@ extern Plugin *plugin;
 // module widgets
 ////////////////////
 
-struct MyModuleWidget : ModuleWidget {
-	MyModuleWidget();
+struct SEQWidget : ModuleWidget {
+	SEQWidget();
+	Menu *createContextMenu();
 };
