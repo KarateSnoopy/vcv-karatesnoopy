@@ -1,6 +1,7 @@
 #include "Snoopy.hpp"
 #include "dsp/digital.hpp"
 
+#define MAX_STEPS 16
 static long _frameCount = 0;
 void write_log(long freq, const char *format, ...)
 {
@@ -72,10 +73,7 @@ struct SEQ : Module
         RESET_PARAM,
         STEPS_PARAM,
         ROW1_PARAM,
-        ROW2_PARAM = ROW1_PARAM + 8,
-        ROW3_PARAM = ROW2_PARAM + 8,
-        GATE_PARAM = ROW3_PARAM + 8,
-        NUM_PARAMS = GATE_PARAM + 8
+        NUM_PARAMS = ROW1_PARAM + MAX_STEPS
     };
     enum InputIds
     {
@@ -92,7 +90,7 @@ struct SEQ : Module
         ROW2_OUTPUT,
         ROW3_OUTPUT,
         GATE_OUTPUT,
-        NUM_OUTPUTS = GATE_OUTPUT + 8
+        NUM_OUTPUTS = GATE_OUTPUT
     };
 
     bool running = true;
@@ -105,9 +103,9 @@ struct SEQ : Module
     int index = 0;
 
     // TODO
-    SchmittTrigger gateTriggers[8];
-    bool gateState[8] = {0};
-    float stepLights[8] = {};
+    SchmittTrigger gateTriggers[MAX_STEPS];
+    bool gateState[MAX_STEPS] = {0};
+    float stepLights[MAX_STEPS] = {};
 
     enum GateMode
     {
@@ -125,7 +123,7 @@ struct SEQ : Module
     // TODO
     float gatesLight = 0.0;
     float rowLights[3] = {};
-    float gateLights[8] = {};
+    float gateLights[MAX_STEPS] = {};
 
     SEQ() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
     void step();
@@ -139,7 +137,7 @@ struct SEQ : Module
 
         // gates
         json_t *gatesJ = json_array();
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < MAX_STEPS; i++)
         {
             json_t *gateJ = json_integer((int)gateState[i]);
             json_array_append_new(gatesJ, gateJ);
@@ -164,7 +162,7 @@ struct SEQ : Module
         json_t *gatesJ = json_object_get(rootJ, "gates");
         if (gatesJ)
         {
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < MAX_STEPS; i++)
             {
                 json_t *gateJ = json_array_get(gatesJ, i);
                 if (gateJ)
@@ -180,7 +178,7 @@ struct SEQ : Module
 
     void initialize()
     {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < MAX_STEPS; i++)
         {
             gateState[i] = false;
         }
@@ -188,7 +186,7 @@ struct SEQ : Module
 
     void randomize()
     {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < MAX_STEPS; i++)
         {
             gateState[i] = (randomf() > 0.5);
         }
@@ -260,20 +258,20 @@ void SEQ::step()
     bool pulse = gatePulse.process(1.0 / gSampleRate);
 
     // Gate buttons
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < MAX_STEPS; i++)
     {
-        if (gateTriggers[i].process(params[GATE_PARAM + i].value))
-        {
-            //write_log(0, "v %d %f\n", i, params[GATE_PARAM + i].value);
-            gateState[i] = !gateState[i];
-        }
+        // if (gateTriggers[i].process(params[GATE_PARAM + i].value))
+        // {
+        //     //write_log(0, "v %d %f\n", i, params[GATE_PARAM + i].value);
+        //     gateState[i] = !gateState[i];
+        // }
         bool gateOn = (running && i == index && gateState[i]);
         if (gateMode == TRIGGER)
             gateOn = gateOn && pulse;
         else if (gateMode == RETRIGGER)
             gateOn = gateOn && !pulse;
 
-        outputs[GATE_OUTPUT + i].value = gateOn ? 10.0 : 0.0;
+        outputs[GATE_OUTPUT].value = gateOn ? 10.0 : 0.0; // TODO
         stepLights[i] -= stepLights[i] / lightLambda / gSampleRate;
         gateLights[i] = gateState[i] ? 1.0 - stepLights[i] : stepLights[i];
     }
@@ -282,8 +280,8 @@ void SEQ::step()
 
     // Rows
     float row1 = params[ROW1_PARAM + index].value;
-    float row2 = params[ROW2_PARAM + index].value;
-    float row3 = params[ROW3_PARAM + index].value;
+    float row2 = 0.0f; //params[ROW2_PARAM + index].value;
+    float row3 = 0.0f; //params[ROW3_PARAM + index].value;
     bool gatesOn = (running && gateState[index]);
     if (gateMode == TRIGGER)
         gatesOn = gatesOn && pulse;
@@ -319,7 +317,7 @@ SEQWidget::SEQWidget()
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(65, 65), &module->runningLight));
     addParam(createParam<LEDButton>(Vec(99, 61 - 1), module, SEQ::RESET_PARAM, 0.0, 1.0, 0.0));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(104, 65), &module->resetLight));
-    addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 1.0, 8.0, 8.0));
+    addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 1.0, MAX_STEPS, MAX_STEPS));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, 65), &module->gatesLight));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, 65), &module->rowLights[0]));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &module->rowLights[1]));
@@ -335,15 +333,23 @@ SEQWidget::SEQWidget()
     addOutput(createOutput<PJ301MPort>(Vec(portX[6] - 1, 98), module, SEQ::ROW2_OUTPUT));
     addOutput(createOutput<PJ301MPort>(Vec(portX[7] - 1, 98), module, SEQ::ROW3_OUTPUT));
 
-    for (int i = 0; i < 8; i++)
+    static const float btn_x[4] = {20, 58, 96, 135};
+    static const float btn_y[4] = {20, 58, 96, 135};
+    int iZ = 0;
+    for (int iY = 0; iY < 4; iY++)
     {
-        int x = portX[i] - 2;
-        int y = 157;
-        addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::ROW1_PARAM + i, 0.0, 6.0, 0.0));
-        x += 10;
-        y += 10;
-        //addParam(createParam<LEDButton>(Vec(x, y), module, SEQ::GATE_PARAM + i, 0.0, 1.0, 0.0));
-        addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 5, y + 5), &module->gateLights[i]));
+        for (int iX = 0; iX < 4; iX++)
+        {
+            int x = btn_x[iX] - 2;
+            int y = btn_y[iY] + 157;
+            addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::ROW1_PARAM + iZ, 0.0, 6.0, 0.0));
+            x += 10;
+            y += 10;
+            //addParam(createParam<LEDButton>(Vec(x, y), module, SEQ::GATE_PARAM + i, 0.0, 1.0, 0.0));
+            addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 5, y + 5), &module->gateLights[iZ]));
+
+            iZ++;
+        }
     }
 }
 
