@@ -1,224 +1,72 @@
-#include "Snoopy.hpp"
-#include "dsp/digital.hpp"
+#include "SeqModule.h"
 
-#define MAX_STEPS 16
-static long _frameCount = 0;
-void write_log(long freq, const char *format, ...)
+SEQ::SEQ() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS)
 {
-    if (freq == 0)
-        freq++;
+}
 
-    if (_frameCount % freq == 0)
+json_t *SEQ::toJson()
+{
+    json_t *rootJ = json_object();
+
+    // running
+    json_object_set_new(rootJ, "running", json_boolean(running));
+
+    // gates
+    json_t *gatesJ = json_array();
+    for (int i = 0; i < MAX_STEPS; i++)
     {
-        va_list args;
-        va_start(args, format);
+        json_t *gateJ = json_integer((int)gateState[i]);
+        json_array_append_new(gatesJ, gateJ);
+    }
+    json_object_set_new(rootJ, "gates", gatesJ);
 
-        printf("%ld: ", _frameCount);
-        vprintf(format, args);
-        fflush(stdout);
+    // gateMode
+    json_t *gateModeJ = json_integer((int)gateMode);
+    json_object_set_new(rootJ, "gateMode", gateModeJ);
 
-        va_end(args);
+    return rootJ;
+}
+
+void SEQ::fromJson(json_t *rootJ)
+{
+    // running
+    json_t *runningJ = json_object_get(rootJ, "running");
+    if (runningJ)
+        running = json_is_true(runningJ);
+
+    // gates
+    json_t *gatesJ = json_object_get(rootJ, "gates");
+    if (gatesJ)
+    {
+        for (int i = 0; i < MAX_STEPS; i++)
+        {
+            json_t *gateJ = json_array_get(gatesJ, i);
+            if (gateJ)
+                gateState[i] = !!json_integer_value(gateJ);
+        }
+    }
+
+    // gateMode
+    json_t *gateModeJ = json_object_get(rootJ, "gateMode");
+    if (gateModeJ)
+        gateMode = (GateMode)json_integer_value(gateModeJ);
+}
+
+void SEQ::initialize()
+{
+    for (int i = 0; i < MAX_STEPS; i++)
+    {
+        gateState[i] = false;
     }
 }
 
-class ButtonWithLight
+void SEQ::randomize()
 {
-  private:
-    float m_light = 0.0;
-    int m_paramId = 0;
-    int m_inputId = -1;
-    SchmittTrigger m_trigger;
-    bool m_onOffType = false;
-    bool m_currentState = false;
-
-  public:
-    void Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId)
+    for (int i = 0; i < MAX_STEPS; i++)
     {
-        moduleWidget->addParam(createParam<LEDButton>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0));
-        moduleWidget->addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 5, y + 5), &m_light));
-
-        m_paramId = paramId;
+        gateState[i] = (randomf() > 0.5);
     }
-
-    void SetOnOff(bool onOff, bool currentState)
-    {
-        m_onOffType = onOff;
-        m_currentState = currentState;
-        m_light = m_currentState ? 1.0 : 0.0;
-    }
-
-    void AddInput(int inputId)
-    {
-        m_inputId = inputId;
-    }
-
-    bool GetState()
-    {
-        return m_currentState;
-    }
-
-    bool Process(std::vector<Param> &params)
-    {
-        return ProcessHelper(params[m_paramId].value);
-    }
-
-    bool ProcessWithInput(std::vector<Param> &params, std::vector<Input> &input)
-    {
-        return ProcessHelper(params[m_paramId].value + input[m_inputId].value);
-    }
-
-    bool ProcessHelper(float value)
-    {
-        bool returnValue = false;
-        if (m_trigger.process(value))
-        {
-            m_light = 1.0;
-            returnValue = true;
-        }
-
-        const float lightLambda = 0.075;
-
-        if (m_onOffType)
-        {
-            if (returnValue)
-            {
-                m_currentState = !m_currentState;
-            }
-            m_light = m_currentState ? 1.0 : 0.0;
-        }
-        else
-        {
-            m_light -= m_light / lightLambda / gSampleRate;
-        }
-        return returnValue;
-    }
-};
-
-struct SEQ : Module
-{
-  public:
-    enum ParamIds
-    {
-        CLOCK_PARAM,
-        RUN_PARAM,
-        RESET_PARAM,
-        GATE_EDIT_PARAM,
-        PITCH_EDIT_PARAM,
-        STEPS_PARAM,
-        ROW1_PARAM,
-        NUM_PARAMS = ROW1_PARAM + MAX_STEPS
-    };
-    enum InputIds
-    {
-        CLOCK_INPUT,
-        EXT_CLOCK_INPUT,
-        RESET_INPUT,
-        STEPS_INPUT,
-        NUM_INPUTS
-    };
-    enum OutputIds
-    {
-        CV_OUTPUT,
-        GATE_X_OUTPUT,
-        GATE_Y_OUTPUT,
-        NUM_OUTPUTS = GATE_Y_OUTPUT
-    };
-
-    enum GateMode
-    {
-        TRIGGER,
-        RETRIGGER,
-        CONTINUOUS,
-    };
-
-    bool running = true;
-    ButtonWithLight m_pitchEditButton;
-    ButtonWithLight m_gateEditButton;
-    ButtonWithLight m_runningButton;
-    ButtonWithLight m_resetButton;
-    SchmittTrigger clockTrigger; // for external clock
-    SchmittTrigger runningTrigger;
-    SchmittTrigger gateTriggers[MAX_STEPS];
-    float phase = 0.0;
-    int index = 0;
-    bool gateState[MAX_STEPS] = {0};
-    float stepLights[MAX_STEPS] = {};
-    GateMode gateMode = TRIGGER;
-    PulseGenerator gatePulse;
-    std::vector<Widget *> m_seqGrid;
-
-    float cvLight = 0.0f;
-    float gateXLight = 0.0f;
-    float gateYLight = 0.0f;
-    float gateLights[MAX_STEPS] = {};
-
-    SEQ() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
-    void step();
-
-    json_t *toJson()
-    {
-        json_t *rootJ = json_object();
-
-        // running
-        json_object_set_new(rootJ, "running", json_boolean(running));
-
-        // gates
-        json_t *gatesJ = json_array();
-        for (int i = 0; i < MAX_STEPS; i++)
-        {
-            json_t *gateJ = json_integer((int)gateState[i]);
-            json_array_append_new(gatesJ, gateJ);
-        }
-        json_object_set_new(rootJ, "gates", gatesJ);
-
-        // gateMode
-        json_t *gateModeJ = json_integer((int)gateMode);
-        json_object_set_new(rootJ, "gateMode", gateModeJ);
-
-        return rootJ;
-    }
-
-    void fromJson(json_t *rootJ)
-    {
-        // running
-        json_t *runningJ = json_object_get(rootJ, "running");
-        if (runningJ)
-            running = json_is_true(runningJ);
-
-        // gates
-        json_t *gatesJ = json_object_get(rootJ, "gates");
-        if (gatesJ)
-        {
-            for (int i = 0; i < MAX_STEPS; i++)
-            {
-                json_t *gateJ = json_array_get(gatesJ, i);
-                if (gateJ)
-                    gateState[i] = !!json_integer_value(gateJ);
-            }
-        }
-
-        // gateMode
-        json_t *gateModeJ = json_object_get(rootJ, "gateMode");
-        if (gateModeJ)
-            gateMode = (GateMode)json_integer_value(gateModeJ);
-    }
-
-    void initialize()
-    {
-        for (int i = 0; i < MAX_STEPS; i++)
-        {
-            gateState[i] = false;
-        }
-    }
-
-    void randomize()
-    {
-        for (int i = 0; i < MAX_STEPS; i++)
-        {
-            gateState[i] = (randomf() > 0.5);
-        }
-    }
-};
+}
 
 void SEQ::step()
 {
@@ -268,7 +116,7 @@ void SEQ::step()
         m_gateEditButton.SetOnOff(true, false);
         m_pitchEditButton.SetOnOff(true, true);
 
-        for (auto &param : m_seqGrid)
+        for (auto &param : m_editPitchUI)
         {
             param->visible = true;
         }
@@ -279,7 +127,7 @@ void SEQ::step()
         m_gateEditButton.SetOnOff(true, true);
         m_pitchEditButton.SetOnOff(true, false);
 
-        for (auto &param : m_seqGrid)
+        for (auto &param : m_editPitchUI)
         {
             param->visible = false;
         }
@@ -327,8 +175,8 @@ void SEQ::step()
 
     // Rows
     float row1 = params[ROW1_PARAM + index].value;
-    float row2 = 0.0f; //params[ROW2_PARAM + index].value;
-    float row3 = 0.0f; //params[ROW3_PARAM + index].value;
+    //float row2 = 0.0f; //params[ROW2_PARAM + index].value;
+    //float row3 = 0.0f; //params[ROW3_PARAM + index].value;
     bool gatesOn = (running && gateState[index]);
     if (gateMode == TRIGGER)
         gatesOn = gatesOn && pulse;
@@ -346,11 +194,10 @@ void SEQ::step()
     //rowLights[2] = row3;
 }
 
-SEQWidget::SEQWidget()
+void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
 {
-    SEQ *module = new SEQ();
-    setModule(module);
-    box.size = Vec(15 * 22, 380);
+    m_moduleWidget = moduleWidget;
+    Module *module = this;
 
     {
         SVGPanel *panel = new SVGPanel();
@@ -361,25 +208,25 @@ SEQWidget::SEQWidget()
 
     addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
     addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 1.0, MAX_STEPS, MAX_STEPS));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, 65), &module->cvLight));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, 65), &module->gateXLight));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &module->gateYLight));
-    //addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(296, 65), &module->rowLights[2]));
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, 65), &cvLight));
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, 65), &gateXLight));
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &gateYLight));
+    //addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(296, 65), &rowLights[2]));
 
-    module->m_runningButton.Init(this, module, 60, 60, SEQ::RUN_PARAM);
-    module->m_runningButton.SetOnOff(true, true);
-    module->m_resetButton.Init(this, module, 99, 60, SEQ::RESET_PARAM);
-    module->m_resetButton.AddInput(SEQ::RESET_INPUT);
+    m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM);
+    m_runningButton.SetOnOff(true, true);
+    m_resetButton.Init(m_moduleWidget, module, 99, 60, SEQ::RESET_PARAM);
+    m_resetButton.AddInput(SEQ::RESET_INPUT);
 
     int editButtonX = 50;
     int editButtonY = 150;
 
-    module->m_pitchEditButton.Init(this, module, editButtonX, editButtonY, SEQ::PITCH_EDIT_PARAM);
-    module->m_pitchEditButton.SetOnOff(true, true);
+    m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::PITCH_EDIT_PARAM);
+    m_pitchEditButton.SetOnOff(true, true);
 
     editButtonY += 20;
-    module->m_gateEditButton.Init(this, module, editButtonX, editButtonY, SEQ::GATE_EDIT_PARAM);
-    module->m_gateEditButton.SetOnOff(true, false);
+    m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::GATE_EDIT_PARAM);
+    m_gateEditButton.SetOnOff(true, false);
 
     static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289};
     addInput(createInput<PJ301MPort>(Vec(portX[0] - 1, 98), module, SEQ::CLOCK_INPUT));
@@ -401,63 +248,33 @@ SEQWidget::SEQWidget()
             int x = btn_x[iX] + 100;
             int y = btn_y[iY] + 177;
 
-            auto p = createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::ROW1_PARAM + iZ, 0.0, 6.0, 0.0);
-            module->m_seqGrid.push_back(p);
-            addParam(p);
-
-            auto c = createValueLight<SmallLight<GreenValueLight>>(Vec(x + 15, y + 15), &module->gateLights[iZ]);
-            module->m_seqGrid.push_back(c);
-            addChild(c);
+            m_editPitchUI.push_back(addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::ROW1_PARAM + iZ, 0.0, 6.0, 0.0)));
+            m_editPitchUI.push_back(addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 15, y + 15), &gateLights[iZ])));
             iZ++;
         }
     }
 }
 
-struct SEQGateModeItem : MenuItem
+Widget *SEQ::addChild(Widget *widget)
 {
-    SEQ *seq;
-    SEQ::GateMode gateMode;
-    void onAction()
-    {
-        seq->gateMode = gateMode;
-    }
-    void step()
-    {
-        rightText = (seq->gateMode == gateMode) ? "✔" : "";
-    }
-};
+    m_moduleWidget->addChild(widget);
+    return widget;
+}
 
-Menu *SEQWidget::createContextMenu()
+ParamWidget *SEQ::addParam(ParamWidget *param)
 {
-    Menu *menu = ModuleWidget::createContextMenu();
+    m_moduleWidget->addParam(param);
+    return param;
+}
 
-    MenuLabel *spacerLabel = new MenuLabel();
-    menu->pushChild(spacerLabel);
+Port *SEQ::addInput(Port *input)
+{
+    m_moduleWidget->addInput(input);
+    return input;
+}
 
-    SEQ *seq = dynamic_cast<SEQ *>(module);
-    assert(seq);
-
-    MenuLabel *modeLabel = new MenuLabel();
-    modeLabel->text = "Gate Mode";
-    menu->pushChild(modeLabel);
-
-    SEQGateModeItem *triggerItem = new SEQGateModeItem();
-    triggerItem->text = "Trigger";
-    triggerItem->seq = seq;
-    triggerItem->gateMode = SEQ::TRIGGER;
-    menu->pushChild(triggerItem);
-
-    SEQGateModeItem *retriggerItem = new SEQGateModeItem();
-    retriggerItem->text = "Retrigger";
-    retriggerItem->seq = seq;
-    retriggerItem->gateMode = SEQ::RETRIGGER;
-    menu->pushChild(retriggerItem);
-
-    SEQGateModeItem *continuousItem = new SEQGateModeItem();
-    continuousItem->text = "Continuous";
-    continuousItem->seq = seq;
-    continuousItem->gateMode = SEQ::CONTINUOUS;
-    menu->pushChild(continuousItem);
-
-    return menu;
+Port *SEQ::addOutput(Port *output)
+{
+    m_moduleWidget->addOutput(output);
+    return output;
 }
