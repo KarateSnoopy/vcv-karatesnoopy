@@ -2,6 +2,16 @@
 
 SEQ::SEQ() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS)
 {
+    m_patterns = {
+        {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},                                                // forward
+        {15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0},                                                // backward
+        {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}, // ping pong
+        {0, 1, 2, 3, 7, 6, 5, 4, 8, 9, 10, 11, 15, 14, 13, 12},                                                // snake
+        {3, 2, 1, 0, 4, 5, 6, 7, 11, 10, 9, 8, 12, 13, 14, 15},                                                // opposite snake
+        {15, 14, 13, 12, 8, 9, 10, 11, 7, 6, 5, 4, 0, 1, 2, 3},                                                // backward snake
+        {3, 2, 1, 0, 4, 5, 6, 7, 11, 10, 9, 8, 12, 13, 14, 15, 14, 13, 12, 8, 9, 10, 11, 7, 6, 5, 4, 0, 1, 2}, // ping pong snake
+        {0, 1, 2, 3, 7, 11, 15, 14, 13, 12, 8, 4, 5, 6, 10, 9}                                                 // circle
+    };
 }
 
 void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
@@ -17,7 +27,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     }
 
     addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
-    addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 1.0, MAX_STEPS, MAX_STEPS));
+    addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 0.0, 10.0f, 10.0f));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, 65), &m_cvLight));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, 65), &m_gateXLight));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &m_gateYLight));
@@ -212,12 +222,27 @@ void SEQ::ShowEditPitchUI(bool showUI)
 void SEQ::AdvanceStep()
 {
     m_lastStepIndex = m_currentStepIndex;
-    int numSteps = clampi(roundf(params[STEPS_PARAM].value + inputs[STEPS_INPUT].value), 1, MAX_STEPS);
-    m_currentStepIndex += 1;
-    if (m_currentStepIndex >= numSteps)
+    float stepsScale = clampf(params[STEPS_PARAM].value + inputs[STEPS_INPUT].value, 0.0f, 10.0f);
+    stepsScale /= 10.0f;
+    //write_log(10, "stepsScale=%f params[STEPS_PARAM].value: %f inputs[STEPS_INPUT].value: %f\n", stepsScale, params[STEPS_PARAM].value, inputs[STEPS_INPUT].value);
+
+    m_currentPattern = 7;
+
+    int maxStepsInPattern = m_patterns[m_currentPattern].size();
+    int numSteps = clampi(roundf(stepsScale * maxStepsInPattern), 1, maxStepsInPattern);
+
+    m_currentPatternIndex += 1;
+    if (m_currentPatternIndex >= numSteps)
     {
-        m_currentStepIndex = 0;
+        m_currentPatternIndex = 0;
     }
+
+    m_currentStepIndex = m_patterns[m_currentPattern][m_currentPatternIndex];
+    write_log(0, "maxStepsInPattern=%d numSteps=%d m_currentPatternIndex=%d m_currentStepIndex=%d\n",
+              maxStepsInPattern,
+              numSteps,
+              m_currentPatternIndex,
+              m_currentStepIndex);
 
     m_stepLights[m_currentStepIndex] = 1.0;
     m_gatePulse.trigger(1e-3);

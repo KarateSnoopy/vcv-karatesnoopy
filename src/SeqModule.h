@@ -56,12 +56,15 @@ struct SEQ : Module
     PulseGenerator m_gatePulse;
 
     float m_phase = 0.0;
+    int m_currentPattern = 0;
+    int m_currentPatternIndex = 0;
     int m_currentStepIndex = 0;
     int m_lastStepIndex = 0;
     bool m_isPitchOn[MAX_STEPS] = {0};
     float m_stepLights[MAX_STEPS] = {};
     GateMode m_gateMode = TRIGGER;
     std::vector<Widget *> m_editPitchUI;
+    std::vector<std::vector<int>> m_patterns;
 
     float m_cvLight = 0.0f;
     float m_gateXLight = 0.0f;
