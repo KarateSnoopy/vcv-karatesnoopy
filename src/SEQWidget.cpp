@@ -18,11 +18,11 @@ struct SEQGateModeItem : MenuItem
     SEQ::GateMode gateMode;
     void onAction()
     {
-        seq->gateMode = gateMode;
+        seq->m_gateMode = gateMode;
     }
     void step()
     {
-        rightText = (seq->gateMode == gateMode) ? "✔" : "";
+        rightText = (seq->m_gateMode == gateMode) ? "✔" : "";
     }
 };
 

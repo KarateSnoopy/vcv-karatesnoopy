@@ -21,7 +21,6 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, 65), &m_cvLight));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, 65), &m_gateXLight));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &m_gateYLight));
-    //addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(296, 65), &rowLights[2]));
 
     m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM);
     m_runningButton.SetOnOff(true, true);
@@ -30,10 +29,8 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
 
     int editButtonX = 50;
     int editButtonY = 150;
-
     m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::PITCH_EDIT_PARAM);
     m_pitchEditButton.SetOnOff(true, true);
-
     editButtonY += 20;
     m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::GATE_EDIT_PARAM);
     m_gateEditButton.SetOnOff(true, false);
@@ -47,7 +44,6 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     addOutput(createOutput<PJ301MPort>(Vec(portX[4] - 1, 98), module, SEQ::CV_OUTPUT));
     addOutput(createOutput<PJ301MPort>(Vec(portX[5] - 1, 98), module, SEQ::GATE_X_OUTPUT));
     addOutput(createOutput<PJ301MPort>(Vec(portX[6] - 1, 98), module, SEQ::GATE_Y_OUTPUT));
-    //addOutput(createOutput<PJ301MPort>(Vec(portX[7] - 1, 98), module, SEQ::ROW3_OUTPUT));
 
     static const float btn_x[4] = {0, 38, 76, 115};
     static const float btn_y[4] = {0, 38, 76, 115};
@@ -60,7 +56,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
             int y = btn_y[iY] + 177;
 
             m_editPitchUI.push_back(addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::PITCH_PARAM + iZ, 0.0, 6.0, 0.0)));
-            m_editPitchUI.push_back(addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 15, y + 15), &gateLights[iZ])));
+            m_editPitchUI.push_back(addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 15, y + 15), &m_gateLights[iZ])));
             iZ++;
         }
     }
@@ -78,7 +74,7 @@ void SEQ::randomize()
 {
     for (int i = 0; i < MAX_STEPS; i++)
     {
-        //        m_isPitchOn[i] = (randomf() > 0.5);
+        //m_isPitchOn[i] = (randomf() > 0.5);
     }
 }
 
@@ -115,8 +111,8 @@ void SEQ::FadeGateLights()
     for (int i = 0; i < MAX_STEPS; i++)
     {
         m_stepLights[i] -= m_stepLights[i] / lightLambda / gSampleRate;
-        //gateLights[i] = m_isPitchOn[i] ? 1.0 - m_stepLights[i] : m_stepLights[i];
-        gateLights[i] = m_stepLights[i];
+        //m_gateLights[i] = m_isPitchOn[i] ? 1.0 - m_stepLights[i] : m_stepLights[i];
+        m_gateLights[i] = m_stepLights[i];
     }
     m_gateXLight -= m_gateXLight / lightLambda / gSampleRate;
     m_gateYLight -= m_gateYLight / lightLambda / gSampleRate;
@@ -124,7 +120,7 @@ void SEQ::FadeGateLights()
 
 void SEQ::ProcessXYTriggers()
 {
-    bool pulse = gatePulse.process(1.0 / gSampleRate);
+    bool pulse = m_gatePulse.process(1.0 / gSampleRate);
 
     // Rows
     int lastX = m_lastStepIndex % 4;
@@ -134,9 +130,9 @@ void SEQ::ProcessXYTriggers()
 
     // X row
     bool gateXChanged = (m_running && m_isPitchOn[m_currentStepIndex] && lastX != curX);
-    if (gateMode == TRIGGER)
+    if (m_gateMode == TRIGGER)
         gateXChanged = gateXChanged && pulse;
-    else if (gateMode == RETRIGGER)
+    else if (m_gateMode == RETRIGGER)
         gateXChanged = gateXChanged && !pulse;
     outputs[GATE_X_OUTPUT].value = gateXChanged ? 10.0 : 0.0;
     if (gateXChanged)
@@ -145,9 +141,9 @@ void SEQ::ProcessXYTriggers()
 
     // Y row
     bool gateYChanged = (m_running && m_isPitchOn[m_currentStepIndex] && lastY != curY);
-    if (gateMode == TRIGGER)
+    if (m_gateMode == TRIGGER)
         gateYChanged = gateYChanged && pulse;
-    else if (gateMode == RETRIGGER)
+    else if (m_gateMode == RETRIGGER)
         gateYChanged = gateYChanged && !pulse;
     outputs[GATE_Y_OUTPUT].value = gateYChanged ? 10.0 : 0.0;
     if (gateYChanged)
@@ -160,9 +156,9 @@ bool SEQ::ProcessClockAndReset()
     if (inputs[EXT_CLOCK_INPUT].active)
     {
         // External clock
-        if (clockTrigger.process(inputs[EXT_CLOCK_INPUT].value))
+        if (m_clockTrigger.process(inputs[EXT_CLOCK_INPUT].value))
         {
-            phase = 0.0;
+            m_phase = 0.0;
             nextStep = true;
         }
     }
@@ -170,17 +166,17 @@ bool SEQ::ProcessClockAndReset()
     {
         // Internal clock
         float clockTime = powf(2.0, params[CLOCK_PARAM].value + inputs[CLOCK_INPUT].value);
-        phase += clockTime / gSampleRate;
-        if (phase >= 1.0)
+        m_phase += clockTime / gSampleRate;
+        if (m_phase >= 1.0)
         {
-            phase -= 1.0;
+            m_phase -= 1.0;
             nextStep = true;
         }
     }
 
     if (m_resetButton.ProcessWithInput(params, inputs))
     {
-        phase = 0.0;
+        m_phase = 0.0;
         m_currentStepIndex = MAX_STEPS;
         nextStep = true;
     }
@@ -224,7 +220,7 @@ void SEQ::AdvanceStep()
     }
 
     m_stepLights[m_currentStepIndex] = 1.0;
-    gatePulse.trigger(1e-3);
+    m_gatePulse.trigger(1e-3);
 }
 
 Widget *SEQ::addChild(Widget *widget)
@@ -268,7 +264,7 @@ json_t *SEQ::toJson()
     json_object_set_new(rootJ, "gates", gatesJ);
 
     // gateMode
-    json_t *gateModeJ = json_integer((int)gateMode);
+    json_t *gateModeJ = json_integer((int)m_gateMode);
     json_object_set_new(rootJ, "gateMode", gateModeJ);
 
     return rootJ;
@@ -296,5 +292,5 @@ void SEQ::fromJson(json_t *rootJ)
     // gateMode
     json_t *gateModeJ = json_object_get(rootJ, "gateMode");
     if (gateModeJ)
-        gateMode = (GateMode)json_integer_value(gateModeJ);
+        m_gateMode = (GateMode)json_integer_value(gateModeJ);
 }

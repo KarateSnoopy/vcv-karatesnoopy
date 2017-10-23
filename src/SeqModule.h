@@ -52,22 +52,21 @@ struct SEQ : Module
     ButtonWithLight m_gateEditButton;
     ButtonWithLight m_runningButton;
     ButtonWithLight m_resetButton;
-    SchmittTrigger clockTrigger; // for external clock
-    SchmittTrigger runningTrigger;
-    PulseGenerator gatePulse;
+    SchmittTrigger m_clockTrigger; // for external clock
+    PulseGenerator m_gatePulse;
 
-    float phase = 0.0;
+    float m_phase = 0.0;
     int m_currentStepIndex = 0;
     int m_lastStepIndex = 0;
     bool m_isPitchOn[MAX_STEPS] = {0};
     float m_stepLights[MAX_STEPS] = {};
-    GateMode gateMode = TRIGGER;
+    GateMode m_gateMode = TRIGGER;
     std::vector<Widget *> m_editPitchUI;
 
     float m_cvLight = 0.0f;
     float m_gateXLight = 0.0f;
     float m_gateYLight = 0.0f;
-    float gateLights[MAX_STEPS] = {};
+    float m_gateLights[MAX_STEPS] = {};
 
     SEQ();
     void step();
