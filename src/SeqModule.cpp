@@ -84,37 +84,47 @@ void SEQ::randomize()
 
 void SEQ::step()
 {
-    const float lightLambda = 0.075;
     _frameCount++;
-    bool nextStep = false;
 
     if (m_runningButton.Process(params))
     {
         m_running = !m_running;
     }
-
+    bool nextStep = false;
     if (m_running)
     {
         nextStep = ProcessClockAndReset();
     }
-
     ProcessUIButtons();
     if (nextStep)
     {
         AdvanceStep();
     }
+    FadeGateLights();
+    ProcessXYTriggers();
 
-    bool pulse = gatePulse.process(1.0 / gSampleRate);
+    // Pitch output
+    float currentPitch = params[PITCH_PARAM + m_currentStepIndex].value;
+    outputs[CV_OUTPUT].value = currentPitch;
+    m_cvLight = currentPitch;
+}
 
-    // Fade gate lights
+void SEQ::FadeGateLights()
+{
+    const float lightLambda = 0.075;
     for (int i = 0; i < MAX_STEPS; i++)
     {
-        stepLights[i] -= stepLights[i] / lightLambda / gSampleRate;
-        //gateLights[i] = m_isPitchOn[i] ? 1.0 - stepLights[i] : stepLights[i];
-        gateLights[i] = stepLights[i];
+        m_stepLights[i] -= m_stepLights[i] / lightLambda / gSampleRate;
+        //gateLights[i] = m_isPitchOn[i] ? 1.0 - m_stepLights[i] : m_stepLights[i];
+        gateLights[i] = m_stepLights[i];
     }
     m_gateXLight -= m_gateXLight / lightLambda / gSampleRate;
     m_gateYLight -= m_gateYLight / lightLambda / gSampleRate;
+}
+
+void SEQ::ProcessXYTriggers()
+{
+    bool pulse = gatePulse.process(1.0 / gSampleRate);
 
     // Rows
     int lastX = m_lastStepIndex % 4;
@@ -131,7 +141,7 @@ void SEQ::step()
     outputs[GATE_X_OUTPUT].value = gateXChanged ? 10.0 : 0.0;
     if (gateXChanged)
         m_gateXLight = 1.0;
-    write_log(0, "gateXChanged=%d m_running=%d m_isPitchOn[m_currentStepIndex]=%d lastX=%d curX=%d lastY=%d curY=%d\n", gateXChanged, m_running, m_isPitchOn[m_currentStepIndex], lastX, curX, lastY, curY);
+    //write_log(0, "gateXChanged=%d m_running=%d m_isPitchOn[m_currentStepIndex]=%d lastX=%d curX=%d lastY=%d curY=%d\n", gateXChanged, m_running, m_isPitchOn[m_currentStepIndex], lastX, curX, lastY, curY);
 
     // Y row
     bool gateYChanged = (m_running && m_isPitchOn[m_currentStepIndex] && lastY != curY);
@@ -142,11 +152,6 @@ void SEQ::step()
     outputs[GATE_Y_OUTPUT].value = gateYChanged ? 10.0 : 0.0;
     if (gateYChanged)
         m_gateYLight = 1.0;
-
-    // Outputs
-    float currentPitch = params[PITCH_PARAM + m_currentStepIndex].value;
-    outputs[CV_OUTPUT].value = currentPitch;
-    m_cvLight = currentPitch;
 }
 
 bool SEQ::ProcessClockAndReset()
@@ -218,7 +223,7 @@ void SEQ::AdvanceStep()
         m_currentStepIndex = 0;
     }
 
-    stepLights[m_currentStepIndex] = 1.0;
+    m_stepLights[m_currentStepIndex] = 1.0;
     gatePulse.trigger(1e-3);
 }
 

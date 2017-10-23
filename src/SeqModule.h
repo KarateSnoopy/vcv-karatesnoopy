@@ -60,7 +60,7 @@ struct SEQ : Module
     int m_currentStepIndex = 0;
     int m_lastStepIndex = 0;
     bool m_isPitchOn[MAX_STEPS] = {0};
-    float stepLights[MAX_STEPS] = {};
+    float m_stepLights[MAX_STEPS] = {};
     GateMode gateMode = TRIGGER;
     std::vector<Widget *> m_editPitchUI;
 
@@ -75,6 +75,8 @@ struct SEQ : Module
     void ShowEditPitchUI(bool showUI);
     void ProcessUIButtons();
     void AdvanceStep();
+    void ProcessXYTriggers();
+    void FadeGateLights();
 
     void InitUI(ModuleWidget *moduleWidget, Rect box);
     Widget *addChild(Widget *widget);
