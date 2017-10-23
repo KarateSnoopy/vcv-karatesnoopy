@@ -21,56 +21,87 @@ void write_log(long freq, const char *format, ...)
     }
 }
 
-struct Light2 : TransparentWidget
+class ButtonWithLight
 {
-    NVGcolor bgColor = nvgRGBf(0, 0, 0);
-    NVGcolor color = nvgRGBf(1, 1, 1);
-    void draw(NVGcontext *vg);
+  private:
+    float m_light = 0.0;
+    int m_paramId = 0;
+    int m_inputId = -1;
+    SchmittTrigger m_trigger;
+    bool m_onOffType = false;
+    bool m_currentState = false;
+
+  public:
+    void Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId)
+    {
+        moduleWidget->addParam(createParam<LEDButton>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0));
+        moduleWidget->addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 5, y + 5), &m_light));
+
+        m_paramId = paramId;
+    }
+
+    void SetOnOff(bool onOff, bool currentState)
+    {
+        m_onOffType = onOff;
+        m_currentState = currentState;
+    }
+
+    void AddInput(int inputId)
+    {
+        m_inputId = inputId;
+    }
+
+    bool GetState()
+    {
+        return m_currentState;
+    }
+
+    bool Process(std::vector<Param> &params)
+    {
+        return ProcessHelper(params[m_paramId].value);
+    }
+
+    bool ProcessWithInput(std::vector<Param> &params, std::vector<Input> &input)
+    {
+        return ProcessHelper(params[m_paramId].value + input[m_inputId].value);
+    }
+
+    bool ProcessHelper(float value)
+    {
+        bool returnValue = false;
+        if (m_trigger.process(value))
+        {
+            m_light = 1.0;
+            returnValue = true;
+        }
+
+        const float lightLambda = 0.075;
+
+        if (m_onOffType)
+        {
+            if (returnValue)
+            {
+                m_currentState = !m_currentState;
+            }
+            m_light = m_currentState ? 1.0 : 0.0;
+        }
+        else
+        {
+            m_light -= m_light / lightLambda / gSampleRate;
+        }
+        return returnValue;
+    }
 };
-
-void Light2::draw(NVGcontext *vg)
-{
-    float radius = box.size.x / 2.0;
-    float oradius = radius + 20.0;
-
-    // Solid
-    nvgBeginPath(vg);
-    nvgCircle(vg, radius, radius, radius);
-    nvgFillColor(vg, bgColor);
-    nvgFill(vg);
-
-    // Border
-    nvgStrokeWidth(vg, 1.0);
-    NVGcolor borderColor = bgColor;
-    borderColor.a *= 0.5;
-    nvgStrokeColor(vg, borderColor);
-    nvgStroke(vg);
-
-    // Inner glow
-    nvgGlobalCompositeOperation(vg, NVG_LIGHTER);
-    nvgFillColor(vg, color);
-    nvgFill(vg);
-
-    // Outer glow
-    nvgBeginPath(vg);
-    nvgRect(vg, radius - oradius, radius - oradius, 2 * oradius, 2 * oradius);
-    NVGpaint paint;
-    NVGcolor icol = color;
-    icol.a *= 0.15;
-    NVGcolor ocol = color;
-    ocol.a = 0.0;
-    paint = nvgRadialGradient(vg, radius, radius, radius, oradius, icol, ocol);
-    nvgFillPaint(vg, paint);
-    nvgFill(vg);
-}
 
 struct SEQ : Module
 {
+  public:
     enum ParamIds
     {
         CLOCK_PARAM,
         RUN_PARAM,
         RESET_PARAM,
+        GATE_EDIT_PARAM,
         STEPS_PARAM,
         ROW1_PARAM,
         NUM_PARAMS = ROW1_PARAM + MAX_STEPS
@@ -93,34 +124,27 @@ struct SEQ : Module
         NUM_OUTPUTS = GATE_OUTPUT
     };
 
-    bool running = true;
-    SchmittTrigger clockTrigger; // for external clock
-
-    // For buttons
-    SchmittTrigger runningTrigger;
-    SchmittTrigger resetTrigger;
-    float phase = 0.0;
-    int index = 0;
-
-    // TODO
-    SchmittTrigger gateTriggers[MAX_STEPS];
-    bool gateState[MAX_STEPS] = {0};
-    float stepLights[MAX_STEPS] = {};
-
     enum GateMode
     {
         TRIGGER,
         RETRIGGER,
         CONTINUOUS,
     };
+
+    bool running = true;
+    ButtonWithLight m_gateEditButton;
+    ButtonWithLight m_runningButton;
+    ButtonWithLight m_resetButton;
+    SchmittTrigger clockTrigger; // for external clock
+    SchmittTrigger runningTrigger;
+    SchmittTrigger gateTriggers[MAX_STEPS];
+    float phase = 0.0;
+    int index = 0;
+    bool gateState[MAX_STEPS] = {0};
+    float stepLights[MAX_STEPS] = {};
     GateMode gateMode = TRIGGER;
     PulseGenerator gatePulse;
 
-    // Lights
-    float runningLight = 0.0;
-    float resetLight = 0.0;
-
-    // TODO
     float gatesLight = 0.0;
     float rowLights[3] = {};
     float gateLights[MAX_STEPS] = {};
@@ -195,17 +219,15 @@ struct SEQ : Module
 
 void SEQ::step()
 {
-    _frameCount++;
-
     const float lightLambda = 0.075;
+    _frameCount++;
+    bool nextStep = false;
+
     // Run
-    if (runningTrigger.process(params[RUN_PARAM].value))
+    if (m_runningButton.Process(params))
     {
         running = !running;
     }
-    runningLight = running ? 1.0 : 0.0;
-
-    bool nextStep = false;
 
     if (running)
     {
@@ -231,19 +253,18 @@ void SEQ::step()
         }
     }
 
-    // Reset
-    if (resetTrigger.process(params[RESET_PARAM].value + inputs[RESET_INPUT].value))
+    if (m_resetButton.ProcessWithInput(params, inputs))
     {
         phase = 0.0;
-        index = 8;
+        index = MAX_STEPS;
         nextStep = true;
-        resetLight = 1.0;
     }
+    m_gateEditButton.Process(params);
 
     if (nextStep)
     {
         // Advance step
-        int numSteps = clampi(roundf(params[STEPS_PARAM].value + inputs[STEPS_INPUT].value), 1, 8);
+        int numSteps = clampi(roundf(params[STEPS_PARAM].value + inputs[STEPS_INPUT].value), 1, MAX_STEPS);
         index += 1;
         if (index >= numSteps)
         {
@@ -252,8 +273,6 @@ void SEQ::step()
         stepLights[index] = 1.0;
         gatePulse.trigger(1e-3);
     }
-
-    resetLight -= resetLight / lightLambda / gSampleRate;
 
     bool pulse = gatePulse.process(1.0 / gSampleRate);
 
@@ -265,6 +284,7 @@ void SEQ::step()
         //     //write_log(0, "v %d %f\n", i, params[GATE_PARAM + i].value);
         //     gateState[i] = !gateState[i];
         // }
+
         bool gateOn = (running && i == index && gateState[i]);
         if (gateMode == TRIGGER)
             gateOn = gateOn && pulse;
@@ -273,7 +293,10 @@ void SEQ::step()
 
         outputs[GATE_OUTPUT].value = gateOn ? 10.0 : 0.0; // TODO
         stepLights[i] -= stepLights[i] / lightLambda / gSampleRate;
-        gateLights[i] = gateState[i] ? 1.0 - stepLights[i] : stepLights[i];
+        //gateLights[i] = gateState[i] ? 1.0 - stepLights[i] : stepLights[i];
+        gateLights[i] = stepLights[i];
+
+        //write_log(40000, "gateLights[%d]=%f\n", i, gateLights[i]);
     }
 
     //write_log(40000, "g trigger %d %d %d %d\n", gateState[0], gateState[1], gateState[2], gateState[3]);
@@ -313,15 +336,17 @@ SEQWidget::SEQWidget()
     }
 
     addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
-    addParam(createParam<LEDButton>(Vec(60, 61 - 1), module, SEQ::RUN_PARAM, 0.0, 1.0, 0.0));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(65, 65), &module->runningLight));
-    addParam(createParam<LEDButton>(Vec(99, 61 - 1), module, SEQ::RESET_PARAM, 0.0, 1.0, 0.0));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(104, 65), &module->resetLight));
     addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 1.0, MAX_STEPS, MAX_STEPS));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, 65), &module->gatesLight));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, 65), &module->rowLights[0]));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &module->rowLights[1]));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(296, 65), &module->rowLights[2]));
+
+    module->m_runningButton.Init(this, module, 60, 60, SEQ::RUN_PARAM);
+    module->m_runningButton.SetOnOff(true, true);
+    module->m_resetButton.Init(this, module, 99, 60, SEQ::RESET_PARAM);
+    module->m_resetButton.AddInput(SEQ::RESET_INPUT);
+    module->m_gateEditButton.Init(this, module, 296, 150, SEQ::GATE_EDIT_PARAM);
 
     static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289};
     addInput(createInput<PJ301MPort>(Vec(portX[0] - 1, 98), module, SEQ::CLOCK_INPUT));
@@ -333,21 +358,17 @@ SEQWidget::SEQWidget()
     addOutput(createOutput<PJ301MPort>(Vec(portX[6] - 1, 98), module, SEQ::ROW2_OUTPUT));
     addOutput(createOutput<PJ301MPort>(Vec(portX[7] - 1, 98), module, SEQ::ROW3_OUTPUT));
 
-    static const float btn_x[4] = {20, 58, 96, 135};
-    static const float btn_y[4] = {20, 58, 96, 135};
+    static const float btn_x[4] = {0, 38, 76, 115};
+    static const float btn_y[4] = {0, 38, 76, 115};
     int iZ = 0;
     for (int iY = 0; iY < 4; iY++)
     {
         for (int iX = 0; iX < 4; iX++)
         {
-            int x = btn_x[iX] - 2;
-            int y = btn_y[iY] + 157;
+            int x = btn_x[iX] + 18;
+            int y = btn_y[iY] + 177;
             addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::ROW1_PARAM + iZ, 0.0, 6.0, 0.0));
-            x += 10;
-            y += 10;
-            //addParam(createParam<LEDButton>(Vec(x, y), module, SEQ::GATE_PARAM + i, 0.0, 1.0, 0.0));
-            addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 5, y + 5), &module->gateLights[iZ]));
-
+            addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 15, y + 15), &module->gateLights[iZ]));
             iZ++;
         }
     }
