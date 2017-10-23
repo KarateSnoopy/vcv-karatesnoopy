@@ -44,6 +44,7 @@ class ButtonWithLight
     {
         m_onOffType = onOff;
         m_currentState = currentState;
+        m_light = m_currentState ? 1.0 : 0.0;
     }
 
     void AddInput(int inputId)
@@ -102,6 +103,7 @@ struct SEQ : Module
         RUN_PARAM,
         RESET_PARAM,
         GATE_EDIT_PARAM,
+        PITCH_EDIT_PARAM,
         STEPS_PARAM,
         ROW1_PARAM,
         NUM_PARAMS = ROW1_PARAM + MAX_STEPS
@@ -116,12 +118,10 @@ struct SEQ : Module
     };
     enum OutputIds
     {
-        GATES_OUTPUT,
-        ROW1_OUTPUT,
-        ROW2_OUTPUT,
-        ROW3_OUTPUT,
-        GATE_OUTPUT,
-        NUM_OUTPUTS = GATE_OUTPUT
+        CV_OUTPUT,
+        GATE_X_OUTPUT,
+        GATE_Y_OUTPUT,
+        NUM_OUTPUTS = GATE_Y_OUTPUT
     };
 
     enum GateMode
@@ -132,6 +132,7 @@ struct SEQ : Module
     };
 
     bool running = true;
+    ButtonWithLight m_pitchEditButton;
     ButtonWithLight m_gateEditButton;
     ButtonWithLight m_runningButton;
     ButtonWithLight m_resetButton;
@@ -144,9 +145,11 @@ struct SEQ : Module
     float stepLights[MAX_STEPS] = {};
     GateMode gateMode = TRIGGER;
     PulseGenerator gatePulse;
+    std::vector<Widget *> m_seqGrid;
 
-    float gatesLight = 0.0;
-    float rowLights[3] = {};
+    float cvLight = 0.0f;
+    float gateXLight = 0.0f;
+    float gateYLight = 0.0f;
     float gateLights[MAX_STEPS] = {};
 
     SEQ() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {}
@@ -259,7 +262,28 @@ void SEQ::step()
         index = MAX_STEPS;
         nextStep = true;
     }
-    m_gateEditButton.Process(params);
+
+    if (m_pitchEditButton.Process(params))
+    {
+        m_gateEditButton.SetOnOff(true, false);
+        m_pitchEditButton.SetOnOff(true, true);
+
+        for (auto &param : m_seqGrid)
+        {
+            param->visible = true;
+        }
+    }
+
+    if (m_gateEditButton.Process(params))
+    {
+        m_gateEditButton.SetOnOff(true, true);
+        m_pitchEditButton.SetOnOff(true, false);
+
+        for (auto &param : m_seqGrid)
+        {
+            param->visible = false;
+        }
+    }
 
     if (nextStep)
     {
@@ -291,7 +315,7 @@ void SEQ::step()
         else if (gateMode == RETRIGGER)
             gateOn = gateOn && !pulse;
 
-        outputs[GATE_OUTPUT].value = gateOn ? 10.0 : 0.0; // TODO
+        outputs[GATE_X_OUTPUT].value = gateOn ? 10.0 : 0.0; // TODO
         stepLights[i] -= stepLights[i] / lightLambda / gSampleRate;
         //gateLights[i] = gateState[i] ? 1.0 - stepLights[i] : stepLights[i];
         gateLights[i] = stepLights[i];
@@ -312,14 +336,14 @@ void SEQ::step()
         gatesOn = gatesOn && !pulse;
 
     // Outputs
-    outputs[ROW1_OUTPUT].value = row1;
-    outputs[ROW2_OUTPUT].value = row2;
-    outputs[ROW3_OUTPUT].value = row3;
-    outputs[GATES_OUTPUT].value = gatesOn ? 10.0 : 0.0;
-    gatesLight = gatesOn ? 1.0 : 0.0;
-    rowLights[0] = row1;
-    rowLights[1] = row2;
-    rowLights[2] = row3;
+    outputs[CV_OUTPUT].value = row1;
+    //outputs[ROW2_OUTPUT].value = row2;
+    //outputs[ROW3_OUTPUT].value = row3;
+    outputs[GATE_X_OUTPUT].value = gatesOn ? 10.0 : 0.0;
+    gateXLight = gatesOn ? 1.0 : 0.0;
+    //rowLights[0] = row1;
+    //rowLights[1] = row2;
+    //rowLights[2] = row3;
 }
 
 SEQWidget::SEQWidget()
@@ -337,26 +361,35 @@ SEQWidget::SEQWidget()
 
     addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
     addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 1.0, MAX_STEPS, MAX_STEPS));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, 65), &module->gatesLight));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, 65), &module->rowLights[0]));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &module->rowLights[1]));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(296, 65), &module->rowLights[2]));
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, 65), &module->cvLight));
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, 65), &module->gateXLight));
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &module->gateYLight));
+    //addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(296, 65), &module->rowLights[2]));
 
     module->m_runningButton.Init(this, module, 60, 60, SEQ::RUN_PARAM);
     module->m_runningButton.SetOnOff(true, true);
     module->m_resetButton.Init(this, module, 99, 60, SEQ::RESET_PARAM);
     module->m_resetButton.AddInput(SEQ::RESET_INPUT);
-    module->m_gateEditButton.Init(this, module, 296, 150, SEQ::GATE_EDIT_PARAM);
+
+    int editButtonX = 50;
+    int editButtonY = 150;
+
+    module->m_pitchEditButton.Init(this, module, editButtonX, editButtonY, SEQ::PITCH_EDIT_PARAM);
+    module->m_pitchEditButton.SetOnOff(true, true);
+
+    editButtonY += 20;
+    module->m_gateEditButton.Init(this, module, editButtonX, editButtonY, SEQ::GATE_EDIT_PARAM);
+    module->m_gateEditButton.SetOnOff(true, false);
 
     static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289};
     addInput(createInput<PJ301MPort>(Vec(portX[0] - 1, 98), module, SEQ::CLOCK_INPUT));
     addInput(createInput<PJ301MPort>(Vec(portX[1] - 1, 98), module, SEQ::EXT_CLOCK_INPUT));
     addInput(createInput<PJ301MPort>(Vec(portX[2] - 1, 98), module, SEQ::RESET_INPUT));
     addInput(createInput<PJ301MPort>(Vec(portX[3] - 1, 98), module, SEQ::STEPS_INPUT));
-    addOutput(createOutput<PJ301MPort>(Vec(portX[4] - 1, 98), module, SEQ::GATES_OUTPUT));
-    addOutput(createOutput<PJ301MPort>(Vec(portX[5] - 1, 98), module, SEQ::ROW1_OUTPUT));
-    addOutput(createOutput<PJ301MPort>(Vec(portX[6] - 1, 98), module, SEQ::ROW2_OUTPUT));
-    addOutput(createOutput<PJ301MPort>(Vec(portX[7] - 1, 98), module, SEQ::ROW3_OUTPUT));
+    addOutput(createOutput<PJ301MPort>(Vec(portX[4] - 1, 98), module, SEQ::CV_OUTPUT));
+    addOutput(createOutput<PJ301MPort>(Vec(portX[5] - 1, 98), module, SEQ::GATE_X_OUTPUT));
+    addOutput(createOutput<PJ301MPort>(Vec(portX[6] - 1, 98), module, SEQ::GATE_Y_OUTPUT));
+    //addOutput(createOutput<PJ301MPort>(Vec(portX[7] - 1, 98), module, SEQ::ROW3_OUTPUT));
 
     static const float btn_x[4] = {0, 38, 76, 115};
     static const float btn_y[4] = {0, 38, 76, 115};
@@ -365,10 +398,16 @@ SEQWidget::SEQWidget()
     {
         for (int iX = 0; iX < 4; iX++)
         {
-            int x = btn_x[iX] + 18;
+            int x = btn_x[iX] + 100;
             int y = btn_y[iY] + 177;
-            addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::ROW1_PARAM + iZ, 0.0, 6.0, 0.0));
-            addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 15, y + 15), &module->gateLights[iZ]));
+
+            auto p = createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::ROW1_PARAM + iZ, 0.0, 6.0, 0.0);
+            module->m_seqGrid.push_back(p);
+            addParam(p);
+
+            auto c = createValueLight<SmallLight<GreenValueLight>>(Vec(x + 15, y + 15), &module->gateLights[iZ]);
+            module->m_seqGrid.push_back(c);
+            addChild(c);
             iZ++;
         }
     }
