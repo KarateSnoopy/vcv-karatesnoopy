@@ -18,8 +18,8 @@ struct SEQ : Module
         GATE_EDIT_PARAM,
         PITCH_EDIT_PARAM,
         STEPS_PARAM,
-        ROW1_PARAM,
-        NUM_PARAMS = ROW1_PARAM + MAX_STEPS
+        PITCH_PARAM,
+        NUM_PARAMS = PITCH_PARAM + MAX_STEPS
     };
 
     enum InputIds
@@ -47,30 +47,35 @@ struct SEQ : Module
     };
 
     ModuleWidget *m_moduleWidget;
-    bool running = true;
+    bool m_running = true;
     ButtonWithLight m_pitchEditButton;
     ButtonWithLight m_gateEditButton;
     ButtonWithLight m_runningButton;
     ButtonWithLight m_resetButton;
     SchmittTrigger clockTrigger; // for external clock
     SchmittTrigger runningTrigger;
-    SchmittTrigger gateTriggers[MAX_STEPS];
     PulseGenerator gatePulse;
 
     float phase = 0.0;
-    int index = 0;
-    bool gateState[MAX_STEPS] = {0};
+    int m_currentStepIndex = 0;
+    int m_lastStepIndex = 0;
+    bool m_isPitchOn[MAX_STEPS] = {0};
     float stepLights[MAX_STEPS] = {};
     GateMode gateMode = TRIGGER;
     std::vector<Widget *> m_editPitchUI;
 
-    float cvLight = 0.0f;
-    float gateXLight = 0.0f;
-    float gateYLight = 0.0f;
+    float m_cvLight = 0.0f;
+    float m_gateXLight = 0.0f;
+    float m_gateYLight = 0.0f;
     float gateLights[MAX_STEPS] = {};
 
     SEQ();
     void step();
+    bool ProcessClockAndReset();
+    void ShowEditPitchUI(bool showUI);
+    void ProcessUIButtons();
+    void AdvanceStep();
+
     void InitUI(ModuleWidget *moduleWidget, Rect box);
     Widget *addChild(Widget *widget);
     ParamWidget *addParam(ParamWidget *param);
