@@ -64,10 +64,11 @@ struct SEQ : Module
     int m_currentPatternIndex = 0;
     int m_currentStepIndex = 0;
     int m_lastStepIndex = 0;
-    bool m_isPitchOn[MAX_STEPS] = {0};
+    float m_isPitchOn[MAX_STEPS] = {0};
     float m_stepLights[MAX_STEPS] = {};
     GateMode m_gateMode = TRIGGER;
     std::vector<Widget *> m_editPitchUI;
+    std::vector<std::shared_ptr<ButtonWithLight>> m_editGateUI;
     std::vector<std::vector<int>> m_patterns;
 
     float m_cvLight = 0.0f;
@@ -79,9 +80,11 @@ struct SEQ : Module
     void step();
     bool ProcessClockAndReset();
     void ShowEditPitchUI(bool showUI);
+    void ShowEditGateUI(bool showUI);
     void ProcessUIButtons();
     void AdvanceStep();
     void ProcessXYTriggers();
+    void ProcessEditGateButtons();
     void FadeGateLights();
 
     void InitUI(ModuleWidget *moduleWidget, Rect box);

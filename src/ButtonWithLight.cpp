@@ -1,9 +1,18 @@
 #include "ButtonWithLight.h"
+#include "utils.h"
 
-void ButtonWithLight::Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId)
+void ButtonWithLight::Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId, float *pValue)
 {
-    moduleWidget->addParam(createParam<LEDButton>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0));
-    moduleWidget->addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 5, y + 5), &m_light));
+    auto p = createParam<LEDButton>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0);
+    moduleWidget->addParam(p);
+    m_controls.push_back(p);
+
+    m_pValue = pValue;
+    if (m_pValue == nullptr)
+        m_pValue = &m_light;
+    auto p2 = createValueLight<SmallLight<GreenValueLight>>(Vec(x + 5, y + 5), m_pValue);
+    moduleWidget->addChild(p2);
+    m_controls.push_back(p2);
 
     m_paramId = paramId;
 }
@@ -11,8 +20,15 @@ void ButtonWithLight::Init(ModuleWidget *moduleWidget, Module *module, int x, in
 void ButtonWithLight::SetOnOff(bool onOff, bool currentState)
 {
     m_onOffType = onOff;
-    m_currentState = currentState;
-    m_light = m_currentState ? 1.0 : 0.0;
+    *m_pValue = currentState ? 1.0 : 0.0;
+}
+
+void ButtonWithLight::SetVisible(bool showUI)
+{
+    for (auto &c : m_controls)
+    {
+        c->visible = showUI;
+    }
 }
 
 void ButtonWithLight::AddInput(int inputId)
@@ -20,9 +36,9 @@ void ButtonWithLight::AddInput(int inputId)
     m_inputId = inputId;
 }
 
-bool ButtonWithLight::GetState()
+float ButtonWithLight::GetState()
 {
-    return m_currentState;
+    return *m_pValue;
 }
 
 bool ButtonWithLight::Process(std::vector<Param> &params)
@@ -40,7 +56,6 @@ bool ButtonWithLight::ProcessHelper(float value)
     bool returnValue = false;
     if (m_trigger.process(value))
     {
-        m_light = 1.0;
         returnValue = true;
     }
 
@@ -50,13 +65,29 @@ bool ButtonWithLight::ProcessHelper(float value)
     {
         if (returnValue)
         {
-            m_currentState = !m_currentState;
+            if (*m_pValue > 0.0f)
+                *m_pValue = 0.0f;
+            else
+                *m_pValue = 1.0f;
         }
-        m_light = m_currentState ? 1.0 : 0.0;
+
+        if (m_log)
+        {
+            write_log(0, "returnValue: %d m_pValue:%f\n", returnValue, *m_pValue);
+        }
     }
     else
     {
-        m_light -= m_light / lightLambda / gSampleRate;
+        if (returnValue)
+        {
+            *m_pValue = 1.0f;
+        }
+        *m_pValue -= *m_pValue / lightLambda / gSampleRate;
+
+        if (m_log)
+        {
+            write_log(0, "returnValue: %d m_pValue:%f\n", returnValue, *m_pValue);
+        }
     }
     return returnValue;
 }

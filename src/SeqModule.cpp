@@ -37,18 +37,18 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &m_gateYLight));
     addChild(new TextLabelWidget(257 + 1, 55, 50, 50, 10, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Y"));
 
-    m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM);
+    m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM, nullptr);
     m_runningButton.SetOnOff(true, true);
-    m_resetButton.Init(m_moduleWidget, module, 99, 60, SEQ::RESET_PARAM);
+    m_resetButton.Init(m_moduleWidget, module, 99, 60, SEQ::RESET_PARAM, nullptr);
     m_resetButton.AddInput(SEQ::RESET_INPUT);
 
     int editButtonX = 50;
     int editButtonY = 150;
-    m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::PITCH_EDIT_PARAM);
+    m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::PITCH_EDIT_PARAM, nullptr);
     m_pitchEditButton.SetOnOff(true, true);
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Pitch"));
     editButtonY += 20;
-    m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::GATE_EDIT_PARAM);
+    m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::GATE_EDIT_PARAM, nullptr);
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Gate"));
     m_gateEditButton.SetOnOff(true, false);
 
@@ -78,19 +78,38 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
         }
     }
 
+    iZ = 0;
+    for (int iY = 0; iY < 4; iY++)
+    {
+        for (int iX = 0; iX < 4; iX++)
+        {
+            int x = btn_x[iX] + 90;
+            int y = btn_y[iY] + 157;
+
+            std::shared_ptr<ButtonWithLight> pButton = std::make_shared<ButtonWithLight>();
+            pButton->Init(m_moduleWidget, module, x, y, SEQ::PITCH_PARAM + iZ, &m_isPitchOn[iZ]);
+            pButton->SetOnOff(true, m_isPitchOn[iZ] > 0.0f);
+            m_editGateUI.push_back(pButton);
+            iZ++;
+        }
+    }
+
     int patternX = 270;
     int patternY = 170;
     addChild(new LCDNumberWidget(patternX, patternY, &m_currentPattern));
     addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(patternX, patternY + 40), module, SEQ::PATTERN_PARAM, 0.0, 10.0f, 0.0f));
     addInput(createInput<PJ301MPort>(Vec(patternX, patternY + 70), module, SEQ::PATTERN_INPUT));
     addChild(new TextLabelWidget(patternX, patternY - 6, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Pattern"));
+
+    ShowEditPitchUI(true);
+    ShowEditGateUI(false);
 }
 
 void SEQ::initialize()
 {
     for (int i = 0; i < MAX_STEPS; i++)
     {
-        m_isPitchOn[i] = true;
+        m_isPitchOn[i] = 1.0f;
     }
 }
 
@@ -98,7 +117,7 @@ void SEQ::randomize()
 {
     for (int i = 0; i < MAX_STEPS; i++)
     {
-        //m_isPitchOn[i] = (randomf() > 0.5);
+        m_isPitchOn[i] = (randomf() > 0.5);
     }
 }
 
@@ -122,6 +141,7 @@ void SEQ::step()
     }
     FadeGateLights();
     ProcessXYTriggers();
+    ProcessEditGateButtons();
 
     // Pitch output
     float currentPitch = params[PITCH_PARAM + m_currentStepIndex].value;
@@ -142,6 +162,14 @@ void SEQ::FadeGateLights()
     m_gateYLight -= m_gateYLight / lightLambda / gSampleRate;
 }
 
+void SEQ::ProcessEditGateButtons()
+{
+    for (auto &param : m_editGateUI)
+    {
+        param->Process(params);
+    }
+}
+
 void SEQ::ProcessXYTriggers()
 {
     bool pulse = m_gatePulse.process(1.0 / gSampleRate);
@@ -153,7 +181,7 @@ void SEQ::ProcessXYTriggers()
     int curY = m_currentStepIndex / 4;
 
     // X row
-    bool gateXChanged = (m_running && m_isPitchOn[m_currentStepIndex] && lastX != curX);
+    bool gateXChanged = (m_running && m_isPitchOn[m_currentStepIndex] > 0.0f && lastX != curX);
     if (m_gateMode == TRIGGER)
         gateXChanged = gateXChanged && pulse;
     else if (m_gateMode == RETRIGGER)
@@ -164,7 +192,7 @@ void SEQ::ProcessXYTriggers()
     //write_log(0, "gateXChanged=%d m_running=%d m_isPitchOn[m_currentStepIndex]=%d lastX=%d curX=%d lastY=%d curY=%d\n", gateXChanged, m_running, m_isPitchOn[m_currentStepIndex], lastX, curX, lastY, curY);
 
     // Y row
-    bool gateYChanged = (m_running && m_isPitchOn[m_currentStepIndex] && lastY != curY);
+    bool gateYChanged = (m_running && m_isPitchOn[m_currentStepIndex] > 0.0f && lastY != curY);
     if (m_gateMode == TRIGGER)
         gateYChanged = gateYChanged && pulse;
     else if (m_gateMode == RETRIGGER)
@@ -215,6 +243,7 @@ void SEQ::ProcessUIButtons()
         m_gateEditButton.SetOnOff(true, false);
         m_pitchEditButton.SetOnOff(true, true);
         ShowEditPitchUI(true);
+        ShowEditGateUI(false);
     }
 
     if (m_gateEditButton.Process(params))
@@ -222,6 +251,7 @@ void SEQ::ProcessUIButtons()
         m_gateEditButton.SetOnOff(true, true);
         m_pitchEditButton.SetOnOff(true, false);
         ShowEditPitchUI(false);
+        ShowEditGateUI(true);
     }
 }
 
@@ -230,6 +260,14 @@ void SEQ::ShowEditPitchUI(bool showUI)
     for (auto &param : m_editPitchUI)
     {
         param->visible = showUI;
+    }
+}
+
+void SEQ::ShowEditGateUI(bool showUI)
+{
+    for (auto &param : m_editGateUI)
+    {
+        param->SetVisible(showUI);
     }
 }
 
@@ -254,11 +292,11 @@ void SEQ::AdvanceStep()
     }
 
     m_currentStepIndex = m_patterns[m_currentPattern - 1][m_currentPatternIndex];
-    write_log(0, "maxStepsInPattern=%d numSteps=%d m_currentPatternIndex=%d m_currentStepIndex=%d\n",
-              maxStepsInPattern,
-              numSteps,
-              m_currentPatternIndex,
-              m_currentStepIndex);
+    // write_log(0, "maxStepsInPattern=%d numSteps=%d m_currentPatternIndex=%d m_currentStepIndex=%d\n",
+    //           maxStepsInPattern,
+    //           numSteps,
+    //           m_currentPatternIndex,
+    //           m_currentStepIndex);
 
     m_stepLights[m_currentStepIndex] = 1.0;
     m_gatePulse.trigger(1e-3);
