@@ -70,6 +70,8 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
             iZ++;
         }
     }
+
+    addChild(new LCDNumberWidget(10, 10, &m_currentPattern));
 }
 
 void SEQ::initialize()

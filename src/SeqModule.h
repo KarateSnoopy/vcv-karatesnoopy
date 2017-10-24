@@ -4,6 +4,7 @@
 #include "ButtonWithLight.h"
 #include "dsp/digital.hpp"
 #include "utils.h"
+#include "LCDNumberWidget.h"
 
 #define MAX_STEPS 16
 
