@@ -5,6 +5,7 @@
 #include "dsp/digital.hpp"
 #include "utils.h"
 #include "LCDNumberWidget.h"
+#include "TextLabelWidget.h"
 
 #define MAX_STEPS 16
 
@@ -19,6 +20,7 @@ struct SEQ : Module
         GATE_EDIT_PARAM,
         PITCH_EDIT_PARAM,
         STEPS_PARAM,
+        PATTERN_PARAM,
         PITCH_PARAM,
         NUM_PARAMS = PITCH_PARAM + MAX_STEPS
     };
@@ -29,6 +31,7 @@ struct SEQ : Module
         EXT_CLOCK_INPUT,
         RESET_INPUT,
         STEPS_INPUT,
+        PATTERN_INPUT,
         NUM_INPUTS
     };
 

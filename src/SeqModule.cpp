@@ -26,11 +26,16 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
         addChild(panel);
     }
 
+    addChild(new TextLabelWidget(100, 30, 50, 50, 24, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "2D GRID SEQ"));
+
     addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
     addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 0.0, 10.0f, 10.0f));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, 65), &m_cvLight));
+    addChild(new TextLabelWidget(175, 55, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "CV"));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, 65), &m_gateXLight));
+    addChild(new TextLabelWidget(219 + 1, 55, 50, 50, 10, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X"));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &m_gateYLight));
+    addChild(new TextLabelWidget(257 + 1, 55, 50, 50, 10, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Y"));
 
     m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM);
     m_runningButton.SetOnOff(true, true);
@@ -41,8 +46,10 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     int editButtonY = 150;
     m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::PITCH_EDIT_PARAM);
     m_pitchEditButton.SetOnOff(true, true);
+    addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Pitch"));
     editButtonY += 20;
     m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::GATE_EDIT_PARAM);
+    addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Gate"));
     m_gateEditButton.SetOnOff(true, false);
 
     static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289};
@@ -55,15 +62,15 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     addOutput(createOutput<PJ301MPort>(Vec(portX[5] - 1, 98), module, SEQ::GATE_X_OUTPUT));
     addOutput(createOutput<PJ301MPort>(Vec(portX[6] - 1, 98), module, SEQ::GATE_Y_OUTPUT));
 
-    static const float btn_x[4] = {0, 38, 76, 115};
-    static const float btn_y[4] = {0, 38, 76, 115};
+    static const float btn_x[4] = {0, 38 + 5, 76 + 10, 115 + 15};
+    static const float btn_y[4] = {0, 38 + 5, 76 + 10, 115 + 15};
     int iZ = 0;
     for (int iY = 0; iY < 4; iY++)
     {
         for (int iX = 0; iX < 4; iX++)
         {
-            int x = btn_x[iX] + 100;
-            int y = btn_y[iY] + 177;
+            int x = btn_x[iX] + 90;
+            int y = btn_y[iY] + 157;
 
             m_editPitchUI.push_back(addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::PITCH_PARAM + iZ, 0.0, 6.0, 0.0)));
             m_editPitchUI.push_back(addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 15, y + 15), &m_gateLights[iZ])));
@@ -71,7 +78,12 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
         }
     }
 
-    addChild(new LCDNumberWidget(10, 10, &m_currentPattern));
+    int patternX = 270;
+    int patternY = 170;
+    addChild(new LCDNumberWidget(patternX, patternY, &m_currentPattern));
+    addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(patternX, patternY + 40), module, SEQ::PATTERN_PARAM, 0.0, 10.0f, 0.0f));
+    addInput(createInput<PJ301MPort>(Vec(patternX, patternY + 70), module, SEQ::PATTERN_INPUT));
+    addChild(new TextLabelWidget(patternX, patternY - 6, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Pattern"));
 }
 
 void SEQ::initialize()
@@ -223,14 +235,16 @@ void SEQ::ShowEditPitchUI(bool showUI)
 
 void SEQ::AdvanceStep()
 {
+    float patternScale = clampf(params[PATTERN_PARAM].value + inputs[PATTERN_INPUT].value, 0.0f, 10.0f);
+    patternScale /= 10.0f;
+    m_currentPattern = clampi(roundf(patternScale * m_patterns.size()), 1, m_patterns.size());
+
     m_lastStepIndex = m_currentStepIndex;
     float stepsScale = clampf(params[STEPS_PARAM].value + inputs[STEPS_INPUT].value, 0.0f, 10.0f);
     stepsScale /= 10.0f;
     //write_log(10, "stepsScale=%f params[STEPS_PARAM].value: %f inputs[STEPS_INPUT].value: %f\n", stepsScale, params[STEPS_PARAM].value, inputs[STEPS_INPUT].value);
 
-    m_currentPattern = 7;
-
-    int maxStepsInPattern = m_patterns[m_currentPattern].size();
+    int maxStepsInPattern = m_patterns[m_currentPattern - 1].size();
     int numSteps = clampi(roundf(stepsScale * maxStepsInPattern), 1, maxStepsInPattern);
 
     m_currentPatternIndex += 1;
@@ -239,7 +253,7 @@ void SEQ::AdvanceStep()
         m_currentPatternIndex = 0;
     }
 
-    m_currentStepIndex = m_patterns[m_currentPattern][m_currentPatternIndex];
+    m_currentStepIndex = m_patterns[m_currentPattern - 1][m_currentPatternIndex];
     write_log(0, "maxStepsInPattern=%d numSteps=%d m_currentPatternIndex=%d m_currentStepIndex=%d\n",
               maxStepsInPattern,
               numSteps,
