@@ -28,6 +28,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     }
 
     addChild(new TextLabelWidget(100, 30, 50, 50, 24, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "2D GRID SEQ"));
+    addChild(new TextLabelWidget(220, 370, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "by KarateSnoopy"));
 
     addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
     addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 0.0, 10.0f, 10.0f));
@@ -148,9 +149,11 @@ void SEQ::RandomizeHelper(bool randomPitch, bool randomGate, bool randomSkip)
 {
     if (randomPitch)
     {
+        float dx = rescalef(randomf(), 0.0, 1.0, 1.0f, 3.0f);
         for (auto &param : m_editPitchParamUI)
         {
-            param->setValue(rescalef(randomf(), 0.3, 0.8, param->minValue, param->maxValue));
+            //param->setValue(rescalef(randomf(), 0.0, 1.0, param->minValue, param->maxValue));
+            param->setValue(rescalef(randomf(), 0.0, 1.0, 0.0f, 2.0f) + dx);
         }
     }
 

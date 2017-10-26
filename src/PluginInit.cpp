@@ -7,12 +7,12 @@ Plugin *plugin;
 void init(rack::Plugin *p)
 {
     plugin = p;
-    plugin->slug = "Snoopy";
-    plugin->name = "Snoopy";
-    plugin->homepageUrl = "https://github.com/KarateSnoopy/vcv-snoopy";
+    plugin->slug = "KarateSnoopy";
+    plugin->name = "KarateSnoopy";
+    plugin->homepageUrl = "https://github.com/KarateSnoopy/vcv-karatesnoopy";
 #ifdef VERSION
 //	plugin->version = TOSTRING(VERSION);
 #endif
 
-    createModel<SEQWidget>(plugin, "SEQ", "SEQ");
+    createModel<SEQWidget>(plugin, "KSNPY 2D GRID SEQ", "KSNPY 2D GRID SEQ");
 }
