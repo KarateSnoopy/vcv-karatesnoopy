@@ -8,4 +8,4 @@ I started with the Fundamentals SEQ-3 and added 3 pages of dynamically changable
 Anyway, it compiles for v0.4.0.  I'll try to release binaires for it tommarow for folks that can't build.
 
 Here's my video walkthrough of it: https://youtu.be/5Bw99jjyd-g
-Lemme know about bugs or features requests.
+Lemme know about bugs or features requests at https://github.com/KarateSnoopy/vcv-karatesnoopy/issues
