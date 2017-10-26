@@ -380,8 +380,7 @@ void SEQ::AdvanceStep()
     int maxStepsInPattern = m_patterns[m_currentPattern - 1].size();
     int numSteps = clampi(roundf(stepsScale * maxStepsInPattern), 1, maxStepsInPattern);
 
-    int startSeek = m_currentPatternIndex;
-    while (true)
+    for (int skipAttempts = 0; skipAttempts < MAX_STEPS; skipAttempts++)
     {
         m_currentPatternIndex += 1;
         if (m_currentPatternIndex >= numSteps)
@@ -393,10 +392,9 @@ void SEQ::AdvanceStep()
         {
             break;
         }
-
-        if (startSeek == m_currentPatternIndex) // stop if we looped around
+        else
         {
-            break;
+            numSteps++; // ignore wrt # of steps
         }
     }
 

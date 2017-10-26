@@ -14,5 +14,5 @@ void init(rack::Plugin *p)
 //	plugin->version = TOSTRING(VERSION);
 #endif
 
-    createModel<SEQWidget>(plugin, "KSNPY 2D GRID SEQ", "KSNPY 2D GRID SEQ");
+    createModel<SEQWidget>(plugin, "KSnpy 2D Grid Seq", "KSnpy 2D Grid Seq");
 }
