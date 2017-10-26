@@ -7,7 +7,7 @@ using namespace rack;
 class ButtonWithLight
 {
   public:
-    void Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId, float *pValue);
+    void Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId, float *pValue, bool bigButton);
     void SetOnOff(bool onOff, bool currentState);
     void AddInput(int inputId);
     float GetState();

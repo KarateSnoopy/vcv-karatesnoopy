@@ -14,15 +14,18 @@ struct SEQ : Module
   public:
     enum ParamIds
     {
+        EDIT_GATE_PARAM,
+        EDIT_PITCH_PARAM,
+        EDIT_SKIP_PARAM,
+        STEPS_PARAM,
         CLOCK_PARAM,
         RUN_PARAM,
         RESET_PARAM,
-        GATE_EDIT_PARAM,
-        PITCH_EDIT_PARAM,
-        STEPS_PARAM,
         PATTERN_PARAM,
-        PITCH_PARAM,
-        NUM_PARAMS = PITCH_PARAM + MAX_STEPS
+        PITCH_PARAM,                          // MAX_STEPS of these
+        GATE_PARAM = PITCH_PARAM + MAX_STEPS, // MAX_STEPS of these
+        SKIP_PARAM = GATE_PARAM + MAX_STEPS,  // MAX_STEPS of these
+        NUM_PARAMS = SKIP_PARAM + MAX_STEPS
     };
 
     enum InputIds
@@ -40,7 +43,8 @@ struct SEQ : Module
         CV_OUTPUT,
         GATE_X_OUTPUT,
         GATE_Y_OUTPUT,
-        NUM_OUTPUTS = GATE_Y_OUTPUT
+        GATE_XORY_OUTPUT,
+        NUM_OUTPUTS = GATE_XORY_OUTPUT
     };
 
     enum GateMode
@@ -54,6 +58,7 @@ struct SEQ : Module
     bool m_running = true;
     ButtonWithLight m_pitchEditButton;
     ButtonWithLight m_gateEditButton;
+    ButtonWithLight m_skipEditButton;
     ButtonWithLight m_runningButton;
     ButtonWithLight m_resetButton;
     SchmittTrigger m_clockTrigger; // for external clock
@@ -65,26 +70,30 @@ struct SEQ : Module
     int m_currentStepIndex = 0;
     int m_lastStepIndex = 0;
     float m_isPitchOn[MAX_STEPS] = {0};
+    float m_isSkip[MAX_STEPS] = {0};
     float m_stepLights[MAX_STEPS] = {};
+    float m_gateLights[MAX_STEPS] = {};
     GateMode m_gateMode = TRIGGER;
     std::vector<Widget *> m_editPitchUI;
     std::vector<std::shared_ptr<ButtonWithLight>> m_editGateUI;
+    std::vector<std::shared_ptr<ButtonWithLight>> m_editSkipUI;
     std::vector<std::vector<int>> m_patterns;
 
     float m_cvLight = 0.0f;
     float m_gateXLight = 0.0f;
     float m_gateYLight = 0.0f;
-    float m_gateLights[MAX_STEPS] = {};
+    float m_gateXorYLight = 0.0f;
 
     SEQ();
     void step();
     bool ProcessClockAndReset();
     void ShowEditPitchUI(bool showUI);
     void ShowEditGateUI(bool showUI);
+    void ShowEditSkipUI(bool showUI);
     void ProcessUIButtons();
     void AdvanceStep();
     void ProcessXYTriggers();
-    void ProcessEditGateButtons();
+    void ProcessEditButtons();
     void FadeGateLights();
 
     void InitUI(ModuleWidget *moduleWidget, Rect box);

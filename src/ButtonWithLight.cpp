@@ -1,16 +1,25 @@
 #include "ButtonWithLight.h"
 #include "utils.h"
 
-void ButtonWithLight::Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId, float *pValue)
+void ButtonWithLight::Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId, float *pValue, bool bigButton)
 {
-    auto p = createParam<LEDButton>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0);
+    ParamWidget *p;
+    if (bigButton)
+    {
+        p = createParam<PB61303>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0);
+    }
+    else
+    {
+        p = createParam<LEDButton>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0);
+    }
     moduleWidget->addParam(p);
     m_controls.push_back(p);
 
     m_pValue = pValue;
     if (m_pValue == nullptr)
         m_pValue = &m_light;
-    auto p2 = createValueLight<SmallLight<GreenValueLight>>(Vec(x + 5, y + 5), m_pValue);
+    int delta = (bigButton) ? 10 : 5;
+    auto p2 = createValueLight<SmallLight<GreenValueLight>>(Vec(x + delta, y + delta), m_pValue);
     moduleWidget->addChild(p2);
     m_controls.push_back(p2);
 

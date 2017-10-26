@@ -36,21 +36,27 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     addChild(new TextLabelWidget(219 + 1, 55, 50, 50, 10, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X"));
     addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &m_gateYLight));
     addChild(new TextLabelWidget(257 + 1, 55, 50, 50, 10, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Y"));
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257 + 38, 65), &m_gateXorYLight));
+    addChild(new TextLabelWidget(257 + 1 + 28, 55, 50, 50, 10, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X or Y"));
 
-    m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM, nullptr);
+    m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM, nullptr, false);
     m_runningButton.SetOnOff(true, true);
-    m_resetButton.Init(m_moduleWidget, module, 99, 60, SEQ::RESET_PARAM, nullptr);
+    m_resetButton.Init(m_moduleWidget, module, 99, 60, SEQ::RESET_PARAM, nullptr, false);
     m_resetButton.AddInput(SEQ::RESET_INPUT);
 
     int editButtonX = 50;
     int editButtonY = 150;
-    m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::PITCH_EDIT_PARAM, nullptr);
+    m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_PITCH_PARAM, nullptr, false);
     m_pitchEditButton.SetOnOff(true, true);
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Pitch"));
     editButtonY += 20;
-    m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::GATE_EDIT_PARAM, nullptr);
+    m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_GATE_PARAM, nullptr, false);
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Gate"));
     m_gateEditButton.SetOnOff(true, false);
+    editButtonY += 20;
+    m_skipEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_SKIP_PARAM, nullptr, false);
+    addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Skip"));
+    m_skipEditButton.SetOnOff(true, false);
 
     static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289};
     addInput(createInput<PJ301MPort>(Vec(portX[0] - 1, 98), module, SEQ::CLOCK_INPUT));
@@ -61,6 +67,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     addOutput(createOutput<PJ301MPort>(Vec(portX[4] - 1, 98), module, SEQ::CV_OUTPUT));
     addOutput(createOutput<PJ301MPort>(Vec(portX[5] - 1, 98), module, SEQ::GATE_X_OUTPUT));
     addOutput(createOutput<PJ301MPort>(Vec(portX[6] - 1, 98), module, SEQ::GATE_Y_OUTPUT));
+    addOutput(createOutput<PJ301MPort>(Vec(portX[7] - 1, 98), module, SEQ::GATE_XORY_OUTPUT));
 
     static const float btn_x[4] = {0, 38 + 5, 76 + 10, 115 + 15};
     static const float btn_y[4] = {0, 38 + 5, 76 + 10, 115 + 15};
@@ -83,13 +90,29 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     {
         for (int iX = 0; iX < 4; iX++)
         {
-            int x = btn_x[iX] + 90;
-            int y = btn_y[iY] + 157;
+            int x = btn_x[iX] + 100 - 5;
+            int y = btn_y[iY] + 167 - 5;
 
             std::shared_ptr<ButtonWithLight> pButton = std::make_shared<ButtonWithLight>();
-            pButton->Init(m_moduleWidget, module, x, y, SEQ::PITCH_PARAM + iZ, &m_isPitchOn[iZ]);
+            pButton->Init(m_moduleWidget, module, x, y, SEQ::GATE_PARAM + iZ, &m_isPitchOn[iZ], true);
             pButton->SetOnOff(true, m_isPitchOn[iZ] > 0.0f);
             m_editGateUI.push_back(pButton);
+            iZ++;
+        }
+    }
+
+    iZ = 0;
+    for (int iY = 0; iY < 4; iY++)
+    {
+        for (int iX = 0; iX < 4; iX++)
+        {
+            int x = btn_x[iX] + 100 - 5;
+            int y = btn_y[iY] + 167 - 5;
+
+            std::shared_ptr<ButtonWithLight> pButton = std::make_shared<ButtonWithLight>();
+            pButton->Init(m_moduleWidget, module, x, y, SEQ::SKIP_PARAM + iZ, &m_isSkip[iZ], true);
+            pButton->SetOnOff(true, m_isSkip[iZ] > 0.0f);
+            m_editSkipUI.push_back(pButton);
             iZ++;
         }
     }
@@ -103,6 +126,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
 
     ShowEditPitchUI(true);
     ShowEditGateUI(false);
+    ShowEditSkipUI(false);
 }
 
 void SEQ::initialize()
@@ -110,6 +134,7 @@ void SEQ::initialize()
     for (int i = 0; i < MAX_STEPS; i++)
     {
         m_isPitchOn[i] = 1.0f;
+        m_isSkip[i] = false;
     }
 }
 
@@ -118,6 +143,7 @@ void SEQ::randomize()
     for (int i = 0; i < MAX_STEPS; i++)
     {
         m_isPitchOn[i] = (randomf() > 0.5);
+        m_isSkip[i] = (randomf() > 0.5);
     }
 }
 
@@ -141,7 +167,7 @@ void SEQ::step()
     }
     FadeGateLights();
     ProcessXYTriggers();
-    ProcessEditGateButtons();
+    ProcessEditButtons();
 
     // Pitch output
     float currentPitch = params[PITCH_PARAM + m_currentStepIndex].value;
@@ -160,11 +186,17 @@ void SEQ::FadeGateLights()
     }
     m_gateXLight -= m_gateXLight / lightLambda / gSampleRate;
     m_gateYLight -= m_gateYLight / lightLambda / gSampleRate;
+    m_gateXorYLight -= m_gateXorYLight / lightLambda / gSampleRate;
 }
 
-void SEQ::ProcessEditGateButtons()
+void SEQ::ProcessEditButtons()
 {
     for (auto &param : m_editGateUI)
+    {
+        param->Process(params);
+    }
+
+    for (auto &param : m_editSkipUI)
     {
         param->Process(params);
     }
@@ -200,6 +232,12 @@ void SEQ::ProcessXYTriggers()
     outputs[GATE_Y_OUTPUT].value = gateYChanged ? 10.0 : 0.0;
     if (gateYChanged)
         m_gateYLight = 1.0;
+
+    outputs[GATE_XORY_OUTPUT].value = (gateXChanged || gateYChanged) ? 10.0 : 0.0;
+    if (gateXChanged || gateYChanged)
+    {
+        m_gateXorYLight = 1.0;
+    }
 }
 
 bool SEQ::ProcessClockAndReset()
@@ -240,18 +278,32 @@ void SEQ::ProcessUIButtons()
 {
     if (m_pitchEditButton.Process(params))
     {
-        m_gateEditButton.SetOnOff(true, false);
         m_pitchEditButton.SetOnOff(true, true);
+        m_gateEditButton.SetOnOff(true, false);
+        m_skipEditButton.SetOnOff(true, false);
         ShowEditPitchUI(true);
         ShowEditGateUI(false);
+        ShowEditSkipUI(false);
     }
 
     if (m_gateEditButton.Process(params))
     {
-        m_gateEditButton.SetOnOff(true, true);
         m_pitchEditButton.SetOnOff(true, false);
+        m_gateEditButton.SetOnOff(true, true);
+        m_skipEditButton.SetOnOff(true, false);
         ShowEditPitchUI(false);
         ShowEditGateUI(true);
+        ShowEditSkipUI(false);
+    }
+
+    if (m_skipEditButton.Process(params))
+    {
+        m_gateEditButton.SetOnOff(true, false);
+        m_pitchEditButton.SetOnOff(true, false);
+        m_skipEditButton.SetOnOff(true, true);
+        ShowEditPitchUI(false);
+        ShowEditGateUI(false);
+        ShowEditSkipUI(true);
     }
 }
 
@@ -271,6 +323,14 @@ void SEQ::ShowEditGateUI(bool showUI)
     }
 }
 
+void SEQ::ShowEditSkipUI(bool showUI)
+{
+    for (auto &param : m_editSkipUI)
+    {
+        param->SetVisible(showUI);
+    }
+}
+
 void SEQ::AdvanceStep()
 {
     float patternScale = clampf(params[PATTERN_PARAM].value + inputs[PATTERN_INPUT].value, 0.0f, 10.0f);
@@ -285,13 +345,26 @@ void SEQ::AdvanceStep()
     int maxStepsInPattern = m_patterns[m_currentPattern - 1].size();
     int numSteps = clampi(roundf(stepsScale * maxStepsInPattern), 1, maxStepsInPattern);
 
-    m_currentPatternIndex += 1;
-    if (m_currentPatternIndex >= numSteps)
+    int startSeek = m_currentPatternIndex;
+    while (true)
     {
-        m_currentPatternIndex = 0;
+        m_currentPatternIndex += 1;
+        if (m_currentPatternIndex >= numSteps)
+        {
+            m_currentPatternIndex = 0;
+        }
+        m_currentStepIndex = m_patterns[m_currentPattern - 1][m_currentPatternIndex];
+        if (!m_isSkip[m_currentStepIndex])
+        {
+            break;
+        }
+
+        if (startSeek == m_currentPatternIndex) // stop if we looped around
+        {
+            break;
+        }
     }
 
-    m_currentStepIndex = m_patterns[m_currentPattern - 1][m_currentPatternIndex];
     // write_log(0, "maxStepsInPattern=%d numSteps=%d m_currentPatternIndex=%d m_currentStepIndex=%d\n",
     //           maxStepsInPattern,
     //           numSteps,
@@ -342,6 +415,15 @@ json_t *SEQ::toJson()
     }
     json_object_set_new(rootJ, "gates", gatesJ);
 
+    // skip
+    json_t *gatesS = json_array();
+    for (int i = 0; i < MAX_STEPS; i++)
+    {
+        json_t *gateS = json_integer((int)m_isSkip[i]);
+        json_array_append_new(gatesS, gateS);
+    }
+    json_object_set_new(rootJ, "skips", gatesS);
+
     // gateMode
     json_t *gateModeJ = json_integer((int)m_gateMode);
     json_object_set_new(rootJ, "gateMode", gateModeJ);
@@ -365,6 +447,18 @@ void SEQ::fromJson(json_t *rootJ)
             json_t *gateJ = json_array_get(gatesJ, i);
             if (gateJ)
                 m_isPitchOn[i] = !!json_integer_value(gateJ);
+        }
+    }
+
+    // skips
+    json_t *gatesS = json_object_get(rootJ, "skips");
+    if (gatesS)
+    {
+        for (int i = 0; i < MAX_STEPS; i++)
+        {
+            json_t *gateS = json_array_get(gatesS, i);
+            if (gateS)
+                m_isSkip[i] = !!json_integer_value(gateS);
         }
     }
 
