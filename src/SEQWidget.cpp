@@ -26,6 +26,18 @@ struct SEQGateModeItem : MenuItem
     }
 };
 
+struct SEQActionItem : MenuItem
+{
+    SEQ *seq;
+    bool randomPitch = false;
+    bool randomGate = false;
+    bool randomSkip = false;
+    void onAction()
+    {
+        seq->RandomizeHelper(randomPitch, randomGate, randomSkip);
+    }
+};
+
 Menu *SEQWidget::createContextMenu()
 {
     Menu *menu = ModuleWidget::createContextMenu();
@@ -35,6 +47,24 @@ Menu *SEQWidget::createContextMenu()
 
     SEQ *seq = dynamic_cast<SEQ *>(module);
     assert(seq);
+
+    SEQActionItem *triggerItem1 = new SEQActionItem();
+    triggerItem1->text = "Randomize Pitch";
+    triggerItem1->seq = seq;
+    triggerItem1->randomPitch = true;
+    menu->pushChild(triggerItem1);
+
+    SEQActionItem *triggerItem2 = new SEQActionItem();
+    triggerItem2->text = "Randomize Gate";
+    triggerItem2->seq = seq;
+    triggerItem2->randomGate = true;
+    menu->pushChild(triggerItem2);
+
+    SEQActionItem *triggerItem3 = new SEQActionItem();
+    triggerItem3->text = "Randomize Skip";
+    triggerItem3->seq = seq;
+    triggerItem3->randomSkip = true;
+    menu->pushChild(triggerItem3);
 
     MenuLabel *modeLabel = new MenuLabel();
     modeLabel->text = "Gate Mode";

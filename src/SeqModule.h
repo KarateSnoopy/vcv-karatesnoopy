@@ -14,7 +14,10 @@ struct SEQ : Module
   public:
     enum ParamIds
     {
-        EDIT_GATE_PARAM,
+        PITCH_PARAM,                          // MAX_STEPS of these
+        GATE_PARAM = PITCH_PARAM + MAX_STEPS, // MAX_STEPS of these
+        SKIP_PARAM = GATE_PARAM + MAX_STEPS,  // MAX_STEPS of these
+        EDIT_GATE_PARAM = SKIP_PARAM + MAX_STEPS,
         EDIT_PITCH_PARAM,
         EDIT_SKIP_PARAM,
         STEPS_PARAM,
@@ -22,10 +25,7 @@ struct SEQ : Module
         RUN_PARAM,
         RESET_PARAM,
         PATTERN_PARAM,
-        PITCH_PARAM,                          // MAX_STEPS of these
-        GATE_PARAM = PITCH_PARAM + MAX_STEPS, // MAX_STEPS of these
-        SKIP_PARAM = GATE_PARAM + MAX_STEPS,  // MAX_STEPS of these
-        NUM_PARAMS = SKIP_PARAM + MAX_STEPS
+        NUM_PARAMS
     };
 
     enum InputIds
@@ -44,7 +44,7 @@ struct SEQ : Module
         GATE_X_OUTPUT,
         GATE_Y_OUTPUT,
         GATE_XORY_OUTPUT,
-        NUM_OUTPUTS = GATE_XORY_OUTPUT
+        NUM_OUTPUTS
     };
 
     enum GateMode
@@ -54,8 +54,9 @@ struct SEQ : Module
         CONTINUOUS,
     };
 
-    ModuleWidget *m_moduleWidget;
+    ModuleWidget *m_moduleWidget = nullptr;
     bool m_running = true;
+    bool m_initalized = false;
     ButtonWithLight m_pitchEditButton;
     ButtonWithLight m_gateEditButton;
     ButtonWithLight m_skipEditButton;
@@ -71,10 +72,11 @@ struct SEQ : Module
     int m_lastStepIndex = 0;
     float m_isPitchOn[MAX_STEPS] = {0};
     float m_isSkip[MAX_STEPS] = {0};
-    float m_stepLights[MAX_STEPS] = {};
-    float m_gateLights[MAX_STEPS] = {};
+    float m_stepLights[MAX_STEPS] = {0};
+    float m_gateLights[MAX_STEPS] = {0};
     GateMode m_gateMode = TRIGGER;
     std::vector<Widget *> m_editPitchUI;
+    std::vector<ParamWidget *> m_editPitchParamUI;
     std::vector<std::shared_ptr<ButtonWithLight>> m_editGateUI;
     std::vector<std::shared_ptr<ButtonWithLight>> m_editSkipUI;
     std::vector<std::vector<int>> m_patterns;
@@ -95,6 +97,7 @@ struct SEQ : Module
     void ProcessXYTriggers();
     void ProcessEditButtons();
     void FadeGateLights();
+    void RandomizeHelper(bool randomPitch, bool randomGate, bool randomSkip);
 
     void InitUI(ModuleWidget *moduleWidget, Rect box);
     Widget *addChild(Widget *widget);

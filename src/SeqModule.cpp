@@ -12,6 +12,7 @@ SEQ::SEQ() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS)
         {3, 2, 1, 0, 4, 5, 6, 7, 11, 10, 9, 8, 12, 13, 14, 15, 14, 13, 12, 8, 9, 10, 11, 7, 6, 5, 4, 0, 1, 2}, // ping pong snake
         {0, 1, 2, 3, 7, 11, 15, 14, 13, 12, 8, 4, 5, 6, 10, 9}                                                 // circle
     };
+    m_initalized = false;
 }
 
 void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
@@ -79,7 +80,9 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
             int x = btn_x[iX] + 90;
             int y = btn_y[iY] + 157;
 
-            m_editPitchUI.push_back(addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::PITCH_PARAM + iZ, 0.0, 6.0, 0.0)));
+            auto p = addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::PITCH_PARAM + iZ, 0.0, 6.0, 0.0));
+            m_editPitchUI.push_back(p);
+            m_editPitchParamUI.push_back(p);
             m_editPitchUI.push_back(addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 15, y + 15), &m_gateLights[iZ])));
             iZ++;
         }
@@ -96,6 +99,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
             std::shared_ptr<ButtonWithLight> pButton = std::make_shared<ButtonWithLight>();
             pButton->Init(m_moduleWidget, module, x, y, SEQ::GATE_PARAM + iZ, &m_isPitchOn[iZ], true);
             pButton->SetOnOff(true, m_isPitchOn[iZ] > 0.0f);
+            m_isPitchOn[iZ] = 1.0f;
             m_editGateUI.push_back(pButton);
             iZ++;
         }
@@ -112,6 +116,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
             std::shared_ptr<ButtonWithLight> pButton = std::make_shared<ButtonWithLight>();
             pButton->Init(m_moduleWidget, module, x, y, SEQ::SKIP_PARAM + iZ, &m_isSkip[iZ], true);
             pButton->SetOnOff(true, m_isSkip[iZ] > 0.0f);
+            m_isSkip[iZ] = false;
             m_editSkipUI.push_back(pButton);
             iZ++;
         }
@@ -127,6 +132,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     ShowEditPitchUI(true);
     ShowEditGateUI(false);
     ShowEditSkipUI(false);
+    m_initalized = true;
 }
 
 void SEQ::initialize()
@@ -138,18 +144,44 @@ void SEQ::initialize()
     }
 }
 
+void SEQ::RandomizeHelper(bool randomPitch, bool randomGate, bool randomSkip)
+{
+    if (randomPitch)
+    {
+        for (auto &param : m_editPitchParamUI)
+        {
+            param->setValue(rescalef(randomf(), 0.3, 0.8, param->minValue, param->maxValue));
+        }
+    }
+
+    if (randomGate)
+    {
+        for (int i = 0; i < MAX_STEPS; i++)
+        {
+            m_isPitchOn[i] = (randomf() > 0.5);
+        }
+    }
+
+    if (randomSkip)
+    {
+        for (int i = 0; i < MAX_STEPS; i++)
+        {
+            m_isSkip[i] = (randomf() > 0.5);
+        }
+    }
+}
+
 void SEQ::randomize()
 {
-    for (int i = 0; i < MAX_STEPS; i++)
-    {
-        m_isPitchOn[i] = (randomf() > 0.5);
-        m_isSkip[i] = (randomf() > 0.5);
-    }
+    RandomizeHelper(true, true, true);
 }
 
 void SEQ::step()
 {
-    log_increase_frame_number();
+    if (!m_initalized)
+        return;
+
+    log_increase_step_number();
 
     if (m_runningButton.Process(params))
     {

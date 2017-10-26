@@ -21,7 +21,7 @@ class ButtonWithLight
   private:
     std::vector<Widget *> m_controls;
     float m_light = 0.0;
-    float *m_pValue;
+    float *m_pValue = nullptr;
     int m_paramId = 0;
     int m_inputId = -1;
     SchmittTrigger m_trigger;
