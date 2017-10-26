@@ -149,7 +149,7 @@ void SEQ::randomize()
 
 void SEQ::step()
 {
-    _frameCount++;
+    log_increase_frame_number();
 
     if (m_runningButton.Process(params))
     {

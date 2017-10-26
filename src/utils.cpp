@@ -1,6 +1,12 @@
 #include "utils.h"
 
-long _frameCount = 0;
+static long _frameCount = 0;
+
+void log_increase_frame_number()
+{
+    _frameCount++;
+}
+
 void write_log(long freq, const char *format, ...)
 {
     if (freq == 0)
