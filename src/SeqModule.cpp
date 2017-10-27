@@ -387,7 +387,9 @@ void SEQ::AdvanceStep()
         {
             m_currentPatternIndex = 0;
         }
+        m_currentPatternIndex %= maxStepsInPattern;
         m_currentStepIndex = m_patterns[m_currentPattern - 1][m_currentPatternIndex];
+        //write_log(1, "stepsScale=%f m_currentStepIndex=%d m_currentPatternIndex=%d maxStepsInPattern=%d numSteps=%d\n", stepsScale, m_currentStepIndex, m_currentPatternIndex, maxStepsInPattern, numSteps);
         if (!m_isSkip[m_currentStepIndex])
         {
             break;
