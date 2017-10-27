@@ -6,7 +6,7 @@ Yeah, I know Jeremy Wen (JW) also released a grid sequencer but I was making thi
 
 I started with the Fundamentals SEQ-3 and added 3 pages of dynamically changeable UI controls to set pitch, gate, and skip as well as added a pattern param with CV control with 8 patterns built in. 
 
-Anyway, it compiles for v0.4.0.  I'll try to release binaries for it tomorrow for folks that can't build.
+Releases can be found at https://github.com/KarateSnoopy/vcv-karatesnoopy/releases
 
 Here's my video walkthrough of it: https://youtu.be/5Bw99jjyd-g
 
