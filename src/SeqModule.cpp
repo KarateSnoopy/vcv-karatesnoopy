@@ -32,14 +32,15 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
 
     addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
     addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 0.0, 10.0f, 10.0f));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, 65), &m_cvLight));
-    addChild(new TextLabelWidget(175, 55, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "CV"));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, 65), &m_gateXLight));
-    addChild(new TextLabelWidget(219 + 1, 55, 50, 50, 10, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X"));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, 65), &m_gateYLight));
-    addChild(new TextLabelWidget(257 + 1, 55, 50, 50, 10, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Y"));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257 + 38, 65), &m_gateXorYLight));
-    addChild(new TextLabelWidget(257 + 1 + 28, 55, 50, 50, 10, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X or Y"));
+    int y2 = 69;
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, y2 + 10), &m_cvLight));
+    addChild(new TextLabelWidget(175 + 2, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "CV"));
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, y2 + 10), &m_gateXLight));
+    addChild(new TextLabelWidget(219 + 1, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X"));
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, y2 + 10), &m_gateYLight));
+    addChild(new TextLabelWidget(257 + 1, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Y"));
+    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257 + 38 - 2, y2 + 10), &m_gateXorYLight));
+    addChild(new TextLabelWidget(257 + 1 + 28 - 5, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X or Y"));
 
     m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM, nullptr, false);
     m_runningButton.SetOnOff(true, true);
@@ -60,7 +61,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Skip"));
     m_skipEditButton.SetOnOff(true, false);
 
-    static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289};
+    static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289 - 1};
     addInput(createInput<PJ301MPort>(Vec(portX[0] - 1, 98), module, SEQ::CLOCK_INPUT));
     addInput(createInput<PJ301MPort>(Vec(portX[1] - 1, 98), module, SEQ::EXT_CLOCK_INPUT));
     addInput(createInput<PJ301MPort>(Vec(portX[2] - 1, 98), module, SEQ::RESET_INPUT));
