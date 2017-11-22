@@ -17,7 +17,9 @@ include ../../plugin.mk
 
 
 # Convenience target for including files in the distributable release
-DIST_NAME = Template
+DIST_NAME = KarateSnoopy
+VERSION=0.5
+
 .PHONY: dist
 dist: all
 	mkdir -p dist/$(DIST_NAME)
