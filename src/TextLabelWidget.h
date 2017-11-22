@@ -20,5 +20,5 @@ struct TextLabelWidget : TransparentWidget
         NVGcolor fontColor,
         bool renderBackground,
         std::string value);
-    void draw(NVGcontext *vg);
+    void draw(NVGcontext *vg) override;
 };

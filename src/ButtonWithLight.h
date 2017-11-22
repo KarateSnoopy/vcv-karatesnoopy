@@ -7,7 +7,7 @@ using namespace rack;
 class ButtonWithLight
 {
   public:
-    void Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId, float *pValue, bool bigButton);
+    void Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId, float *pValue, bool bigButton, int lightId);
     void SetOnOff(bool onOff, bool currentState);
     void AddInput(int inputId);
     float GetState();
@@ -21,6 +21,8 @@ class ButtonWithLight
   private:
     std::vector<Widget *> m_controls;
     float m_light = 0.0;
+    int m_lightId = 0;
+    Module *m_module = nullptr;
     float *m_pValue = nullptr;
     int m_paramId = 0;
     int m_inputId = -1;

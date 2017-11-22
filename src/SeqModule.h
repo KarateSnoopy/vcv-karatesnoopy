@@ -54,6 +54,23 @@ struct SEQ : Module
         CONTINUOUS,
     };
 
+    enum LightIds
+    {
+        CV_LIGHT,
+        GATE_LIGHT_0,                               // 16 of these
+        LIGHT_IS_SKIP_0 = GATE_LIGHT_0 + 16,        // 16 of these
+        LIGHT_IS_PITCH_ON_0 = LIGHT_IS_SKIP_0 + 16, // 16 of these
+        GATE_X_LIGHT = LIGHT_IS_PITCH_ON_0 + 16,
+        GATE_Y_LIGHT,
+        GATE_X_OR_Y_LIGHT,
+        LIGHT_RUNNING,
+        LIGHT_RESET,
+        LIGHT_EDIT_PITCH,
+        LIGHT_EDIT_GATE,
+        LIGHT_EDIT_SKIP,
+        NUM_LIGHTS
+    };
+
     ModuleWidget *m_moduleWidget = nullptr;
     bool m_running = true;
     bool m_initalized = false;
@@ -87,7 +104,7 @@ struct SEQ : Module
     float m_gateXorYLight = 0.0f;
 
     SEQ();
-    void step();
+    void step() override;
     bool ProcessClockAndReset();
     void ShowEditPitchUI(bool showUI);
     void ShowEditGateUI(bool showUI);
@@ -98,6 +115,7 @@ struct SEQ : Module
     void ProcessEditButtons();
     void FadeGateLights();
     void RandomizeHelper(bool randomPitch, bool randomGate, bool randomSkip);
+    void UpdateLights();
 
     void InitUI(ModuleWidget *moduleWidget, Rect box);
     Widget *addChild(Widget *widget);
@@ -105,8 +123,8 @@ struct SEQ : Module
     Port *addInput(Port *input);
     Port *addOutput(Port *output);
 
-    json_t *toJson();
-    void fromJson(json_t *rootJ);
-    void initialize();
-    void randomize();
+    json_t *toJson() override;
+    void fromJson(json_t *rootJ) override;
+    void reset() override;
+    void randomize() override;
 };

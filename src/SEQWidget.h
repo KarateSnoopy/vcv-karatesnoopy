@@ -5,5 +5,5 @@ using namespace rack;
 struct SEQWidget : ModuleWidget
 {
     SEQWidget();
-    Menu *createContextMenu();
+    Menu *createContextMenu() override;
 };

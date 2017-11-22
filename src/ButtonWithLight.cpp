@@ -1,9 +1,11 @@
 #include "ButtonWithLight.h"
 #include "utils.h"
 
-void ButtonWithLight::Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId, float *pValue, bool bigButton)
+void ButtonWithLight::Init(ModuleWidget *moduleWidget, Module *module, int x, int y, int paramId, float *pValue, bool bigButton, int lightId)
 {
     ParamWidget *p;
+    m_lightId = lightId;
+    m_module = module;
     if (bigButton)
     {
         p = createParam<PB61303>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0);
@@ -18,9 +20,10 @@ void ButtonWithLight::Init(ModuleWidget *moduleWidget, Module *module, int x, in
     m_pValue = pValue;
     if (m_pValue == nullptr)
         m_pValue = &m_light;
-    int delta = (bigButton) ? 10 : 5;
-    auto p2 = createValueLight<SmallLight<GreenValueLight>>(Vec(x + delta, y + delta), m_pValue);
+    int delta = (bigButton) ? 11 : 6;
+    auto p2 = createLight<SmallLight<GreenLight>>(Vec(x + delta, y + delta), module, lightId);
     moduleWidget->addChild(p2);
+    module->lights[lightId].value = *m_pValue;
     m_controls.push_back(p2);
 
     m_paramId = paramId;
@@ -91,12 +94,15 @@ bool ButtonWithLight::ProcessHelper(float value)
         {
             *m_pValue = 1.0f;
         }
-        *m_pValue -= *m_pValue / lightLambda / gSampleRate;
+        *m_pValue -= *m_pValue / lightLambda / engineGetSampleRate();
 
         if (m_log)
         {
             write_log(0, "returnValue: %d m_pValue:%f\n", returnValue, *m_pValue);
         }
     }
+
+    m_module->lights[m_lightId].value = *m_pValue;
+
     return returnValue;
 }

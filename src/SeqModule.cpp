@@ -1,6 +1,22 @@
 #include "SeqModule.h"
 
-SEQ::SEQ() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS)
+struct Davies1900hSmallBlackKnob : Davies1900hKnob
+{
+    Davies1900hSmallBlackKnob()
+    {
+        setSVG(SVG::load(assetPlugin(plugin, "res/Davies1900hSmallBlack.svg")));
+    }
+};
+
+struct Davies1900hSmallBlackSnapKnob : Davies1900hSmallBlackKnob
+{
+    Davies1900hSmallBlackSnapKnob()
+    {
+        snap = true;
+    }
+};
+
+SEQ::SEQ() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS)
 {
     m_patterns = {
         {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},                                                // forward
@@ -31,33 +47,33 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     addChild(new TextLabelWidget(220, 370, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "by KarateSnoopy"));
 
     addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
-    addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 0.0, 10.0f, 10.0f));
+    addParam(createParam<Davies1900hSmallBlackKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 0.0, 10.0f, 10.0f));
     int y2 = 69;
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(180, y2 + 10), &m_cvLight));
+    addChild(createLight<SmallLight<GreenLight>>(Vec(180, y2 + 10), module, CV_LIGHT));
     addChild(new TextLabelWidget(175 + 2, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "CV"));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(219, y2 + 10), &m_gateXLight));
+    addChild(createLight<SmallLight<GreenLight>>(Vec(219, y2 + 10), module, GATE_X_LIGHT));
     addChild(new TextLabelWidget(219 + 1, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X"));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257, y2 + 10), &m_gateYLight));
+    addChild(createLight<SmallLight<GreenLight>>(Vec(257, y2 + 10), module, GATE_Y_LIGHT));
     addChild(new TextLabelWidget(257 + 1, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Y"));
-    addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(257 + 38 - 2, y2 + 10), &m_gateXorYLight));
+    addChild(createLight<SmallLight<GreenLight>>(Vec(257 + 38 - 2, y2 + 10), module, GATE_X_OR_Y_LIGHT));
     addChild(new TextLabelWidget(257 + 1 + 28 - 5, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X or Y"));
 
-    m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM, nullptr, false);
+    m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM, nullptr, false, LIGHT_RUNNING);
     m_runningButton.SetOnOff(true, true);
-    m_resetButton.Init(m_moduleWidget, module, 99, 60, SEQ::RESET_PARAM, nullptr, false);
+    m_resetButton.Init(m_moduleWidget, module, 99, 60, SEQ::RESET_PARAM, nullptr, false, LIGHT_RESET);
     m_resetButton.AddInput(SEQ::RESET_INPUT);
 
     int editButtonX = 50;
     int editButtonY = 150;
-    m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_PITCH_PARAM, nullptr, false);
+    m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_PITCH_PARAM, nullptr, false, LIGHT_EDIT_PITCH);
     m_pitchEditButton.SetOnOff(true, true);
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Pitch"));
     editButtonY += 20;
-    m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_GATE_PARAM, nullptr, false);
+    m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_GATE_PARAM, nullptr, false, LIGHT_EDIT_GATE);
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Gate"));
     m_gateEditButton.SetOnOff(true, false);
     editButtonY += 20;
-    m_skipEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_SKIP_PARAM, nullptr, false);
+    m_skipEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_SKIP_PARAM, nullptr, false, LIGHT_EDIT_SKIP);
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Skip"));
     m_skipEditButton.SetOnOff(true, false);
 
@@ -85,7 +101,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
             auto p = addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::PITCH_PARAM + iZ, 0.0, 6.0, 0.0));
             m_editPitchUI.push_back(p);
             m_editPitchParamUI.push_back(p);
-            m_editPitchUI.push_back(addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(x + 15, y + 15), &m_gateLights[iZ])));
+            m_editPitchUI.push_back(addChild(createLight<SmallLight<GreenLight>>(Vec(x + 15, y + 15), module, GATE_LIGHT_0 + iZ)));
             iZ++;
         }
     }
@@ -99,7 +115,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
             int y = btn_y[iY] + 167 - 5;
 
             std::shared_ptr<ButtonWithLight> pButton = std::make_shared<ButtonWithLight>();
-            pButton->Init(m_moduleWidget, module, x, y, SEQ::GATE_PARAM + iZ, &m_isPitchOn[iZ], true);
+            pButton->Init(m_moduleWidget, module, x, y, SEQ::GATE_PARAM + iZ, &m_isPitchOn[iZ], true, LIGHT_IS_PITCH_ON_0 + iZ);
             pButton->SetOnOff(true, m_isPitchOn[iZ] > 0.0f);
             m_isPitchOn[iZ] = 1.0f;
             m_editGateUI.push_back(pButton);
@@ -116,7 +132,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
             int y = btn_y[iY] + 167 - 5;
 
             std::shared_ptr<ButtonWithLight> pButton = std::make_shared<ButtonWithLight>();
-            pButton->Init(m_moduleWidget, module, x, y, SEQ::SKIP_PARAM + iZ, &m_isSkip[iZ], true);
+            pButton->Init(m_moduleWidget, module, x, y, SEQ::SKIP_PARAM + iZ, &m_isSkip[iZ], true, LIGHT_IS_SKIP_0 + iZ);
             pButton->SetOnOff(true, m_isSkip[iZ] > 0.0f);
             m_isSkip[iZ] = false;
             m_editSkipUI.push_back(pButton);
@@ -137,7 +153,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     m_initalized = true;
 }
 
-void SEQ::initialize()
+void SEQ::reset()
 {
     for (int i = 0; i < MAX_STEPS; i++)
     {
@@ -209,6 +225,19 @@ void SEQ::step()
     float currentPitch = params[PITCH_PARAM + m_currentStepIndex].value;
     outputs[CV_OUTPUT].value = currentPitch;
     m_cvLight = currentPitch;
+    UpdateLights();
+}
+
+void SEQ::UpdateLights()
+{
+    lights[CV_LIGHT].value = m_cvLight;
+    for (int iZ = 0; iZ < 16; iZ++)
+    {
+        lights[GATE_LIGHT_0 + iZ].value = m_gateLights[iZ];
+    }
+    lights[GATE_X_LIGHT].value = m_gateXLight;
+    lights[GATE_Y_LIGHT].value = m_gateYLight;
+    lights[GATE_X_OR_Y_LIGHT].value = m_gateXorYLight;
 }
 
 void SEQ::FadeGateLights()
@@ -216,13 +245,13 @@ void SEQ::FadeGateLights()
     const float lightLambda = 0.075;
     for (int i = 0; i < MAX_STEPS; i++)
     {
-        m_stepLights[i] -= m_stepLights[i] / lightLambda / gSampleRate;
+        m_stepLights[i] -= m_stepLights[i] / lightLambda / engineGetSampleRate();
         //m_gateLights[i] = m_isPitchOn[i] ? 1.0 - m_stepLights[i] : m_stepLights[i];
         m_gateLights[i] = m_stepLights[i];
     }
-    m_gateXLight -= m_gateXLight / lightLambda / gSampleRate;
-    m_gateYLight -= m_gateYLight / lightLambda / gSampleRate;
-    m_gateXorYLight -= m_gateXorYLight / lightLambda / gSampleRate;
+    m_gateXLight -= m_gateXLight / lightLambda / engineGetSampleRate();
+    m_gateYLight -= m_gateYLight / lightLambda / engineGetSampleRate();
+    m_gateXorYLight -= m_gateXorYLight / lightLambda / engineGetSampleRate();
 }
 
 void SEQ::ProcessEditButtons()
@@ -240,7 +269,7 @@ void SEQ::ProcessEditButtons()
 
 void SEQ::ProcessXYTriggers()
 {
-    bool pulse = m_gatePulse.process(1.0 / gSampleRate);
+    bool pulse = m_gatePulse.process(1.0 / engineGetSampleRate());
 
     // Rows
     int lastX = m_lastStepIndex % 4;
@@ -292,7 +321,7 @@ bool SEQ::ProcessClockAndReset()
     {
         // Internal clock
         float clockTime = powf(2.0, params[CLOCK_PARAM].value + inputs[CLOCK_INPUT].value);
-        m_phase += clockTime / gSampleRate;
+        m_phase += clockTime / engineGetSampleRate();
         if (m_phase >= 1.0)
         {
             m_phase -= 1.0;

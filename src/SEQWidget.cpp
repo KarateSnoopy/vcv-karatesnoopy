@@ -20,7 +20,7 @@ struct SEQGateModeItem : MenuItem
     {
         seq->m_gateMode = gateMode;
     }
-    void step()
+    void step() override
     {
         rightText = (seq->m_gateMode == gateMode) ? "✔" : "";
     }
@@ -43,7 +43,7 @@ Menu *SEQWidget::createContextMenu()
     Menu *menu = ModuleWidget::createContextMenu();
 
     MenuLabel *spacerLabel = new MenuLabel();
-    menu->pushChild(spacerLabel);
+    menu->addChild(spacerLabel);
 
     SEQ *seq = dynamic_cast<SEQ *>(module);
     assert(seq);
@@ -52,41 +52,41 @@ Menu *SEQWidget::createContextMenu()
     triggerItem1->text = "Randomize Pitch";
     triggerItem1->seq = seq;
     triggerItem1->randomPitch = true;
-    menu->pushChild(triggerItem1);
+    menu->addChild(triggerItem1);
 
     SEQActionItem *triggerItem2 = new SEQActionItem();
     triggerItem2->text = "Randomize Gate";
     triggerItem2->seq = seq;
     triggerItem2->randomGate = true;
-    menu->pushChild(triggerItem2);
+    menu->addChild(triggerItem2);
 
     SEQActionItem *triggerItem3 = new SEQActionItem();
     triggerItem3->text = "Randomize Skip";
     triggerItem3->seq = seq;
     triggerItem3->randomSkip = true;
-    menu->pushChild(triggerItem3);
+    menu->addChild(triggerItem3);
 
     MenuLabel *modeLabel = new MenuLabel();
     modeLabel->text = "Gate Mode";
-    menu->pushChild(modeLabel);
+    menu->addChild(modeLabel);
 
     SEQGateModeItem *triggerItem = new SEQGateModeItem();
     triggerItem->text = "Trigger";
     triggerItem->seq = seq;
     triggerItem->gateMode = SEQ::TRIGGER;
-    menu->pushChild(triggerItem);
+    menu->addChild(triggerItem);
 
     SEQGateModeItem *retriggerItem = new SEQGateModeItem();
     retriggerItem->text = "Retrigger";
     retriggerItem->seq = seq;
     retriggerItem->gateMode = SEQ::RETRIGGER;
-    menu->pushChild(retriggerItem);
+    menu->addChild(retriggerItem);
 
     SEQGateModeItem *continuousItem = new SEQGateModeItem();
     continuousItem->text = "Continuous";
     continuousItem->seq = seq;
     continuousItem->gateMode = SEQ::CONTINUOUS;
-    menu->pushChild(continuousItem);
+    menu->addChild(continuousItem);
 
     return menu;
 }
