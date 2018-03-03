@@ -1,6 +1,4 @@
 #pragma once
-#include "PluginInit.h"
-#include "SEQWidget.h"
 #include "ButtonWithLight.h"
 #include "dsp/digital.hpp"
 #include "utils.h"

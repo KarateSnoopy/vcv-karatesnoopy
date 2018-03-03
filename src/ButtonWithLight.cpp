@@ -8,11 +8,11 @@ void ButtonWithLight::Init(ModuleWidget *moduleWidget, Module *module, int x, in
     m_module = module;
     if (bigButton)
     {
-        p = createParam<PB61303>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0);
+        p = ParamWidget::create<PB61303>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0);
     }
     else
     {
-        p = createParam<LEDButton>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0);
+        p = ParamWidget::create<LEDButton>(Vec(x, y), module, paramId, 0.0, 1.0, 0.0);
     }
     moduleWidget->addParam(p);
     m_controls.push_back(p);
@@ -21,7 +21,7 @@ void ButtonWithLight::Init(ModuleWidget *moduleWidget, Module *module, int x, in
     if (m_pValue == nullptr)
         m_pValue = &m_light;
     int delta = (bigButton) ? 11 : 6;
-    auto p2 = createLight<SmallLight<GreenLight>>(Vec(x + delta, y + delta), module, lightId);
+    auto p2 = ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(x + delta, y + delta), module, lightId);
     moduleWidget->addChild(p2);
     module->lights[lightId].value = *m_pValue;
     m_controls.push_back(p2);
@@ -106,3 +106,5 @@ bool ButtonWithLight::ProcessHelper(float value)
 
     return returnValue;
 }
+
+

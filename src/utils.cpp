@@ -24,3 +24,5 @@ void write_log(long freq, const char *format, ...)
         va_end(args);
     }
 }
+
+

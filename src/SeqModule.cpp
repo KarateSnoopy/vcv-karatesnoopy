@@ -46,16 +46,16 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     addChild(new TextLabelWidget(100, 30, 50, 50, 24, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "2D GRID SEQ"));
     addChild(new TextLabelWidget(220, 370, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "by KarateSnoopy"));
 
-    addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
-    addParam(createParam<Davies1900hSmallBlackKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 0.0, 10.0f, 10.0f));
+    addParam(ParamWidget::create<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
+    addParam(ParamWidget::create<Davies1900hSmallBlackKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 0.0, 10.0f, 10.0f));
     int y2 = 69;
-    addChild(createLight<SmallLight<GreenLight>>(Vec(180, y2 + 10), module, CV_LIGHT));
+    addChild(ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(180, y2 + 10), module, CV_LIGHT));
     addChild(new TextLabelWidget(175 + 2, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "CV"));
-    addChild(createLight<SmallLight<GreenLight>>(Vec(219, y2 + 10), module, GATE_X_LIGHT));
+    addChild(ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(219, y2 + 10), module, GATE_X_LIGHT));
     addChild(new TextLabelWidget(219 + 1, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X"));
-    addChild(createLight<SmallLight<GreenLight>>(Vec(257, y2 + 10), module, GATE_Y_LIGHT));
+    addChild(ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(257, y2 + 10), module, GATE_Y_LIGHT));
     addChild(new TextLabelWidget(257 + 1, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Y"));
-    addChild(createLight<SmallLight<GreenLight>>(Vec(257 + 38 - 2, y2 + 10), module, GATE_X_OR_Y_LIGHT));
+    addChild(ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(257 + 38 - 2, y2 + 10), module, GATE_X_OR_Y_LIGHT));
     addChild(new TextLabelWidget(257 + 1 + 28 - 5, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X or Y"));
 
     m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM, nullptr, false, LIGHT_RUNNING);
@@ -78,15 +78,15 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     m_skipEditButton.SetOnOff(true, false);
 
     static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289 - 1};
-    addInput(createInput<PJ301MPort>(Vec(portX[0] - 1, 98), module, SEQ::CLOCK_INPUT));
-    addInput(createInput<PJ301MPort>(Vec(portX[1] - 1, 98), module, SEQ::EXT_CLOCK_INPUT));
-    addInput(createInput<PJ301MPort>(Vec(portX[2] - 1, 98), module, SEQ::RESET_INPUT));
-    addInput(createInput<PJ301MPort>(Vec(portX[3] - 1, 98), module, SEQ::STEPS_INPUT));
+    addInput(Port::create<PJ301MPort>(Vec(portX[0] - 1, 98), Port::INPUT, module, SEQ::CLOCK_INPUT));
+    addInput(Port::create<PJ301MPort>(Vec(portX[1] - 1, 98), Port::INPUT, module, SEQ::EXT_CLOCK_INPUT));
+    addInput(Port::create<PJ301MPort>(Vec(portX[2] - 1, 98), Port::INPUT, module, SEQ::RESET_INPUT));
+    addInput(Port::create<PJ301MPort>(Vec(portX[3] - 1, 98), Port::INPUT, module, SEQ::STEPS_INPUT));
 
-    addOutput(createOutput<PJ301MPort>(Vec(portX[4] - 1, 98), module, SEQ::CV_OUTPUT));
-    addOutput(createOutput<PJ301MPort>(Vec(portX[5] - 1, 98), module, SEQ::GATE_X_OUTPUT));
-    addOutput(createOutput<PJ301MPort>(Vec(portX[6] - 1, 98), module, SEQ::GATE_Y_OUTPUT));
-    addOutput(createOutput<PJ301MPort>(Vec(portX[7] - 1, 98), module, SEQ::GATE_XORY_OUTPUT));
+    addOutput(Port::create<PJ301MPort>(Vec(portX[4] - 1, 98), Port::OUTPUT, module, SEQ::CV_OUTPUT));
+    addOutput(Port::create<PJ301MPort>(Vec(portX[5] - 1, 98), Port::OUTPUT, module, SEQ::GATE_X_OUTPUT));
+    addOutput(Port::create<PJ301MPort>(Vec(portX[6] - 1, 98), Port::OUTPUT, module, SEQ::GATE_Y_OUTPUT));
+    addOutput(Port::create<PJ301MPort>(Vec(portX[7] - 1, 98), Port::OUTPUT, module, SEQ::GATE_XORY_OUTPUT));
 
     static const float btn_x[4] = {0, 38 + 5, 76 + 10, 115 + 15};
     static const float btn_y[4] = {0, 38 + 5, 76 + 10, 115 + 15};
@@ -98,10 +98,10 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
             int x = btn_x[iX] + 90;
             int y = btn_y[iY] + 157;
 
-            auto p = addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQ::PITCH_PARAM + iZ, 0.0, 6.0, 0.0));
+            auto p = addParam(ParamWidget::create<RoundBlackKnob>(Vec(x, y), module, SEQ::PITCH_PARAM + iZ, 0.0, 6.0, 0.0));
             m_editPitchUI.push_back(p);
             m_editPitchParamUI.push_back(p);
-            m_editPitchUI.push_back(addChild(createLight<SmallLight<GreenLight>>(Vec(x + 15, y + 15), module, GATE_LIGHT_0 + iZ)));
+            m_editPitchUI.push_back(addChild(ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(x + 15, y + 15), module, GATE_LIGHT_0 + iZ)));
             iZ++;
         }
     }
@@ -143,8 +143,8 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     int patternX = 270;
     int patternY = 170;
     addChild(new LCDNumberWidget(patternX, patternY, &m_currentPattern));
-    addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(patternX, patternY + 40), module, SEQ::PATTERN_PARAM, 0.0, 10.0f, 0.0f));
-    addInput(createInput<PJ301MPort>(Vec(patternX, patternY + 70), module, SEQ::PATTERN_INPUT));
+    addParam(ParamWidget::create<Davies1900hSmallBlackSnapKnob>(Vec(patternX, patternY + 40), module, SEQ::PATTERN_PARAM, 0.0, 10.0f, 0.0f));
+    addInput(Port::create<PJ301MPort>(Vec(patternX, patternY + 70), Port::INPUT, module, SEQ::PATTERN_INPUT));
     addChild(new TextLabelWidget(patternX, patternY - 6, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Pattern"));
 
     ShowEditPitchUI(true);
@@ -166,11 +166,11 @@ void SEQ::RandomizeHelper(bool randomPitch, bool randomGate, bool randomSkip)
 {
     if (randomPitch)
     {
-        float dx = rescalef(randomf(), 0.0, 1.0, 1.0f, 3.0f);
+        float dx = rescale(randomUniform(), 0.0, 1.0, 1.0f, 3.0f);
         for (auto &param : m_editPitchParamUI)
         {
-            //param->setValue(rescalef(randomf(), 0.0, 1.0, param->minValue, param->maxValue));
-            param->setValue(rescalef(randomf(), 0.0, 1.0, 0.0f, 2.0f) + dx);
+            //param->setValue(rescalef(randomUniform(), 0.0, 1.0, param->minValue, param->maxValue));
+            param->setValue(rescale(randomUniform(), 0.0, 1.0, 0.0f, 2.0f) + dx);
         }
     }
 
@@ -178,7 +178,7 @@ void SEQ::RandomizeHelper(bool randomPitch, bool randomGate, bool randomSkip)
     {
         for (int i = 0; i < MAX_STEPS; i++)
         {
-            m_isPitchOn[i] = (randomf() > 0.5);
+            m_isPitchOn[i] = (randomUniform() > 0.5);
         }
     }
 
@@ -186,7 +186,7 @@ void SEQ::RandomizeHelper(bool randomPitch, bool randomGate, bool randomSkip)
     {
         for (int i = 0; i < MAX_STEPS; i++)
         {
-            m_isSkip[i] = (randomf() > 0.5);
+            m_isSkip[i] = (randomUniform() > 0.5);
         }
     }
 }
@@ -398,17 +398,17 @@ void SEQ::ShowEditSkipUI(bool showUI)
 
 void SEQ::AdvanceStep()
 {
-    float patternScale = clampf(params[PATTERN_PARAM].value + inputs[PATTERN_INPUT].value, 0.0f, 10.0f);
+    float patternScale = clamp(params[PATTERN_PARAM].value + inputs[PATTERN_INPUT].value, 0.0f, 10.0f);
     patternScale /= 10.0f;
-    m_currentPattern = clampi(roundf(patternScale * m_patterns.size()), 1, m_patterns.size());
+    m_currentPattern = clamp(static_cast<int>(roundf(patternScale * m_patterns.size())), 1, m_patterns.size());
 
     m_lastStepIndex = m_currentStepIndex;
-    float stepsScale = clampf(params[STEPS_PARAM].value + inputs[STEPS_INPUT].value, 0.0f, 10.0f);
+    float stepsScale = clamp(params[STEPS_PARAM].value + inputs[STEPS_INPUT].value, 0.0f, 10.0f);
     stepsScale /= 10.0f;
     //write_log(10, "stepsScale=%f params[STEPS_PARAM].value: %f inputs[STEPS_INPUT].value: %f\n", stepsScale, params[STEPS_PARAM].value, inputs[STEPS_INPUT].value);
 
     int maxStepsInPattern = m_patterns[m_currentPattern - 1].size();
-    int numSteps = clampi(roundf(stepsScale * maxStepsInPattern), 1, maxStepsInPattern);
+    int numSteps = clamp(static_cast<int>(roundf(stepsScale * maxStepsInPattern)), 1, maxStepsInPattern);
 
     for (int skipAttempts = 0; skipAttempts < MAX_STEPS; skipAttempts++)
     {
@@ -532,3 +532,5 @@ void SEQ::fromJson(json_t *rootJ)
     if (gateModeJ)
         m_gateMode = (GateMode)json_integer_value(gateModeJ);
 }
+
+

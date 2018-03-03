@@ -51,3 +51,5 @@ void TextLabelWidget::draw(NVGcontext *vg)
     nvgFillColor(vg, m_fontColor);
     nvgText(vg, textPos.x, textPos.y, m_value.c_str(), NULL);
 }
+
+

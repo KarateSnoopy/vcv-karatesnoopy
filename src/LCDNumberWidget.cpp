@@ -43,3 +43,5 @@ void LCDNumberWidget::draw(NVGcontext *vg)
     nvgFillColor(vg, textColor);
     nvgText(vg, textPos.x, textPos.y, to_display.c_str(), NULL);
 }
+
+
