@@ -1,13 +1,10 @@
-#include "PluginInit.h"
 #include "ButtonWithLight.h"
 #include "dsp/digital.hpp"
 #include "utils.h"
-#include "SeqModule.h"
+#include "SEQWidget.h"
 
-SEQWidget::SEQWidget()
+SEQWidget::SEQWidget(SEQ *module) : ModuleWidget(module)
 {
-    SEQ *module = new SEQ();
-    setModule(module);
     box.size = Vec(15 * 22, 380);
     module->InitUI(this, box);
 }
@@ -90,3 +87,5 @@ Menu *SEQWidget::createContextMenu()
 
     return menu;
 }
+
+Model *modelSEQ = Model::create<SEQ, SEQWidget>("KarateSnoopy", "KSnpy 2D Grid Seq", "KSnpy 2D Grid Seq", SEQUENCER_TAG);
