@@ -3,6 +3,9 @@
 #include "dsp/digital.hpp"
 #include "utils.h"
 #include "SeqModule.h"
+#include "SeqWidget.h"
+
+using namespace rack;
 
 SEQWidget::SEQWidget(SEQModule *module) : ModuleWidget(module)
 {
@@ -33,6 +36,7 @@ struct SEQActionItem : MenuItem
     bool randomSkip = false;
     void onAction()
     {
+        seq = nullptr;
         seq->RandomizeHelper(randomPitch, randomGate, randomSkip);
     }
 };
