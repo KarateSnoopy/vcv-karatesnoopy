@@ -1,18 +1,20 @@
+#include "PluginInit.h"
 #include "ButtonWithLight.h"
 #include "dsp/digital.hpp"
 #include "utils.h"
-#include "SEQWidget.h"
+#include "SeqModule.h"
 
-SEQWidget::SEQWidget(SEQ *module) : ModuleWidget(module)
+SEQWidget::SEQWidget(SEQModule *module) : ModuleWidget(module)
 {
+    //setModule(module);
     box.size = Vec(15 * 22, 380);
     module->InitUI(this, box);
 }
 
 struct SEQGateModeItem : MenuItem
 {
-    SEQ *seq;
-    SEQ::GateMode gateMode;
+    SEQModule *seq;
+    SEQModule::GateMode gateMode;
     void onAction()
     {
         seq->m_gateMode = gateMode;
@@ -25,7 +27,7 @@ struct SEQGateModeItem : MenuItem
 
 struct SEQActionItem : MenuItem
 {
-    SEQ *seq;
+    SEQModule *seq;
     bool randomPitch = false;
     bool randomGate = false;
     bool randomSkip = false;
@@ -42,7 +44,7 @@ Menu *SEQWidget::createContextMenu()
     MenuLabel *spacerLabel = new MenuLabel();
     menu->addChild(spacerLabel);
 
-    SEQ *seq = dynamic_cast<SEQ *>(module);
+    SEQModule *seq = dynamic_cast<SEQModule *>(module);
     assert(seq);
 
     SEQActionItem *triggerItem1 = new SEQActionItem();
@@ -70,22 +72,20 @@ Menu *SEQWidget::createContextMenu()
     SEQGateModeItem *triggerItem = new SEQGateModeItem();
     triggerItem->text = "Trigger";
     triggerItem->seq = seq;
-    triggerItem->gateMode = SEQ::TRIGGER;
+    triggerItem->gateMode = SEQModule::TRIGGER;
     menu->addChild(triggerItem);
 
     SEQGateModeItem *retriggerItem = new SEQGateModeItem();
     retriggerItem->text = "Retrigger";
     retriggerItem->seq = seq;
-    retriggerItem->gateMode = SEQ::RETRIGGER;
+    retriggerItem->gateMode = SEQModule::RETRIGGER;
     menu->addChild(retriggerItem);
 
     SEQGateModeItem *continuousItem = new SEQGateModeItem();
     continuousItem->text = "Continuous";
     continuousItem->seq = seq;
-    continuousItem->gateMode = SEQ::CONTINUOUS;
+    continuousItem->gateMode = SEQModule::CONTINUOUS;
     menu->addChild(continuousItem);
 
     return menu;
 }
-
-Model *modelSEQ = Model::create<SEQ, SEQWidget>("KarateSnoopy", "KSnpy 2D Grid Seq", "KSnpy 2D Grid Seq", SEQUENCER_TAG);

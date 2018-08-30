@@ -1,15 +1,21 @@
 #include "PluginInit.h"
-#include "SEQWidget.h"
+#include "SeqWidget.h"
+#include "SeqModule.h"
+
+#include "rack.hpp"
+
+using namespace rack;
 
 // The plugin-wide instance of the Plugin class
-Plugin *plugin;
+rack::Plugin *plugin;
 
 void init(rack::Plugin *p)
 {
     plugin = p;
-    plugin->slug = TOSTRING(SLUG);
-    plugin->website = "https://github.com/KarateSnoopy/vcv-karatesnoopy";
-    plugin->version = TOSTRING(VERSION);
+    p->slug = TOSTRING(SLUG);
+    p->version = TOSTRING(VERSION);
 
-    p->addModel(modelSEQ);
+    Model *modelMyModule = Model::create<SEQModule, SEQWidget>("KarateSnoopy", "KSnpy 2D Grid Seq", "KSnpy 2D Grid Seq", SEQUENCER_TAG);
+
+    p->addModel(modelMyModule);
 }

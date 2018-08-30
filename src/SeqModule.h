@@ -7,7 +7,7 @@
 
 #define MAX_STEPS 16
 
-struct SEQ : Module
+struct SEQModule : rack::Module
 {
   public:
     enum ParamIds
@@ -101,7 +101,7 @@ struct SEQ : Module
     float m_gateYLight = 0.0f;
     float m_gateXorYLight = 0.0f;
 
-    SEQ();
+    SEQModule();
     void step() override;
     bool ProcessClockAndReset();
     void ShowEditPitchUI(bool showUI);

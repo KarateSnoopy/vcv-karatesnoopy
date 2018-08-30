@@ -16,7 +16,7 @@ struct Davies1900hSmallBlackSnapKnob : Davies1900hSmallBlackKnob
     }
 };
 
-SEQ::SEQ() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS)
+SEQModule::SEQModule() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS)
 {
     m_patterns = {
         {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},                                                // forward
@@ -31,7 +31,7 @@ SEQ::SEQ() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS)
     m_initalized = false;
 }
 
-void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
+void SEQModule::InitUI(ModuleWidget *moduleWidget, Rect box)
 {
     m_moduleWidget = moduleWidget;
     Module *module = this;
@@ -46,47 +46,47 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     addChild(new TextLabelWidget(100, 30, 50, 50, 24, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "2D GRID SEQ"));
     addChild(new TextLabelWidget(220, 370, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "by KarateSnoopy"));
 
-    addParam(ParamWidget::create<Davies1900hSmallBlackKnob>(Vec(18, 56), module, SEQ::CLOCK_PARAM, -2.0, 6.0, 2.0));
-    addParam(ParamWidget::create<Davies1900hSmallBlackKnob>(Vec(132, 56), module, SEQ::STEPS_PARAM, 0.0, 10.0f, 10.0f));
+    addParam(createParam<Davies1900hSmallBlackKnob>(Vec(18 + 3, 56), module, SEQModule::CLOCK_PARAM, -2.0, 6.0, 2.0));
+    addParam(createParam<Davies1900hSmallBlackKnob>(Vec(132 + 3, 56), module, SEQModule::STEPS_PARAM, 0.0, 10.0f, 10.0f));
     int y2 = 69;
-    addChild(ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(180, y2 + 10), module, CV_LIGHT));
+    addChild(createLight<SmallLight<GreenLight>>(Vec(180, y2 + 10), module, CV_LIGHT));
     addChild(new TextLabelWidget(175 + 2, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "CV"));
-    addChild(ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(219, y2 + 10), module, GATE_X_LIGHT));
+    addChild(createLight<SmallLight<GreenLight>>(Vec(219, y2 + 10), module, GATE_X_LIGHT));
     addChild(new TextLabelWidget(219 + 1, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X"));
-    addChild(ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(257, y2 + 10), module, GATE_Y_LIGHT));
+    addChild(createLight<SmallLight<GreenLight>>(Vec(257, y2 + 10), module, GATE_Y_LIGHT));
     addChild(new TextLabelWidget(257 + 1, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Y"));
-    addChild(ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(257 + 38 - 2, y2 + 10), module, GATE_X_OR_Y_LIGHT));
+    addChild(createLight<SmallLight<GreenLight>>(Vec(257 + 38 - 2, y2 + 10), module, GATE_X_OR_Y_LIGHT));
     addChild(new TextLabelWidget(257 + 1 + 28 - 5, y2, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "X or Y"));
 
-    m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQ::RUN_PARAM, nullptr, false, LIGHT_RUNNING);
+    m_runningButton.Init(m_moduleWidget, module, 60, 60, SEQModule::RUN_PARAM, nullptr, false, LIGHT_RUNNING);
     m_runningButton.SetOnOff(true, true);
-    m_resetButton.Init(m_moduleWidget, module, 99, 60, SEQ::RESET_PARAM, nullptr, false, LIGHT_RESET);
-    m_resetButton.AddInput(SEQ::RESET_INPUT);
+    m_resetButton.Init(m_moduleWidget, module, 99, 60, SEQModule::RESET_PARAM, nullptr, false, LIGHT_RESET);
+    m_resetButton.AddInput(SEQModule::RESET_INPUT);
 
     int editButtonX = 50;
     int editButtonY = 150;
-    m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_PITCH_PARAM, nullptr, false, LIGHT_EDIT_PITCH);
+    m_pitchEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQModule::EDIT_PITCH_PARAM, nullptr, false, LIGHT_EDIT_PITCH);
     m_pitchEditButton.SetOnOff(true, true);
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Pitch"));
     editButtonY += 20;
-    m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_GATE_PARAM, nullptr, false, LIGHT_EDIT_GATE);
+    m_gateEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQModule::EDIT_GATE_PARAM, nullptr, false, LIGHT_EDIT_GATE);
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Gate"));
     m_gateEditButton.SetOnOff(true, false);
     editButtonY += 20;
-    m_skipEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQ::EDIT_SKIP_PARAM, nullptr, false, LIGHT_EDIT_SKIP);
+    m_skipEditButton.Init(m_moduleWidget, module, editButtonX, editButtonY, SEQModule::EDIT_SKIP_PARAM, nullptr, false, LIGHT_EDIT_SKIP);
     addChild(new TextLabelWidget(editButtonX - 35, editButtonY + 12, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Skip"));
     m_skipEditButton.SetOnOff(true, false);
 
     static const float portX[8] = {20, 58, 96, 135, 173, 212, 250, 289 - 1};
-    addInput(Port::create<PJ301MPort>(Vec(portX[0] - 1, 98), Port::INPUT, module, SEQ::CLOCK_INPUT));
-    addInput(Port::create<PJ301MPort>(Vec(portX[1] - 1, 98), Port::INPUT, module, SEQ::EXT_CLOCK_INPUT));
-    addInput(Port::create<PJ301MPort>(Vec(portX[2] - 1, 98), Port::INPUT, module, SEQ::RESET_INPUT));
-    addInput(Port::create<PJ301MPort>(Vec(portX[3] - 1, 98), Port::INPUT, module, SEQ::STEPS_INPUT));
+    addInput(createInput<PJ301MPort>(Vec(portX[0] - 1, 98), module, SEQModule::CLOCK_INPUT));
+    addInput(createInput<PJ301MPort>(Vec(portX[1] - 1, 98), module, SEQModule::EXT_CLOCK_INPUT));
+    addInput(createInput<PJ301MPort>(Vec(portX[2] - 1, 98), module, SEQModule::RESET_INPUT));
+    addInput(createInput<PJ301MPort>(Vec(portX[3] - 1, 98), module, SEQModule::STEPS_INPUT));
 
-    addOutput(Port::create<PJ301MPort>(Vec(portX[4] - 1, 98), Port::OUTPUT, module, SEQ::CV_OUTPUT));
-    addOutput(Port::create<PJ301MPort>(Vec(portX[5] - 1, 98), Port::OUTPUT, module, SEQ::GATE_X_OUTPUT));
-    addOutput(Port::create<PJ301MPort>(Vec(portX[6] - 1, 98), Port::OUTPUT, module, SEQ::GATE_Y_OUTPUT));
-    addOutput(Port::create<PJ301MPort>(Vec(portX[7] - 1, 98), Port::OUTPUT, module, SEQ::GATE_XORY_OUTPUT));
+    addOutput(createOutput<PJ301MPort>(Vec(portX[4] - 1, 98), module, SEQModule::CV_OUTPUT));
+    addOutput(createOutput<PJ301MPort>(Vec(portX[5] - 1, 98), module, SEQModule::GATE_X_OUTPUT));
+    addOutput(createOutput<PJ301MPort>(Vec(portX[6] - 1, 98), module, SEQModule::GATE_Y_OUTPUT));
+    addOutput(createOutput<PJ301MPort>(Vec(portX[7] - 1, 98), module, SEQModule::GATE_XORY_OUTPUT));
 
     static const float btn_x[4] = {0, 38 + 5, 76 + 10, 115 + 15};
     static const float btn_y[4] = {0, 38 + 5, 76 + 10, 115 + 15};
@@ -98,10 +98,11 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
             int x = btn_x[iX] + 90;
             int y = btn_y[iY] + 157;
 
-            auto p = addParam(ParamWidget::create<RoundBlackKnob>(Vec(x, y), module, SEQ::PITCH_PARAM + iZ, 0.0, 6.0, 0.0));
+            auto p = addParam(createParam<RoundBlackKnob>(Vec(x, y), module, SEQModule::PITCH_PARAM + iZ, 0.0, 6.0, 0.0));
             m_editPitchUI.push_back(p);
             m_editPitchParamUI.push_back(p);
-            m_editPitchUI.push_back(addChild(ModuleLightWidget::create<SmallLight<GreenLight>>(Vec(x + 15, y + 15), module, GATE_LIGHT_0 + iZ)));
+            //            m_editPitchUI.push_back(addChild(createLight<SmallLight<GreenLight>>(Vec(x + 15, y + 15), module, GATE_LIGHT_0 + iZ)));
+            m_editPitchUI.push_back(addChild(createLight<SmallLight<GreenLight>>(Vec(x + 12, y + 12), module, GATE_LIGHT_0 + iZ)));
             iZ++;
         }
     }
@@ -111,11 +112,11 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     {
         for (int iX = 0; iX < 4; iX++)
         {
-            int x = btn_x[iX] + 100 - 5;
-            int y = btn_y[iY] + 167 - 5;
+            int x = btn_x[iX] + 100 - 5 - 3;
+            int y = btn_y[iY] + 167 - 5 - 3;
 
             std::shared_ptr<ButtonWithLight> pButton = std::make_shared<ButtonWithLight>();
-            pButton->Init(m_moduleWidget, module, x, y, SEQ::GATE_PARAM + iZ, &m_isPitchOn[iZ], true, LIGHT_IS_PITCH_ON_0 + iZ);
+            pButton->Init(m_moduleWidget, module, x, y, SEQModule::GATE_PARAM + iZ, &m_isPitchOn[iZ], true, LIGHT_IS_PITCH_ON_0 + iZ);
             pButton->SetOnOff(true, m_isPitchOn[iZ] > 0.0f);
             m_isPitchOn[iZ] = 1.0f;
             m_editGateUI.push_back(pButton);
@@ -128,11 +129,11 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     {
         for (int iX = 0; iX < 4; iX++)
         {
-            int x = btn_x[iX] + 100 - 5;
-            int y = btn_y[iY] + 167 - 5;
+            int x = btn_x[iX] + 100 - 5 - 3;
+            int y = btn_y[iY] + 167 - 5 - 3;
 
             std::shared_ptr<ButtonWithLight> pButton = std::make_shared<ButtonWithLight>();
-            pButton->Init(m_moduleWidget, module, x, y, SEQ::SKIP_PARAM + iZ, &m_isSkip[iZ], true, LIGHT_IS_SKIP_0 + iZ);
+            pButton->Init(m_moduleWidget, module, x, y, SEQModule::SKIP_PARAM + iZ, &m_isSkip[iZ], true, LIGHT_IS_SKIP_0 + iZ);
             pButton->SetOnOff(true, m_isSkip[iZ] > 0.0f);
             m_isSkip[iZ] = false;
             m_editSkipUI.push_back(pButton);
@@ -143,8 +144,8 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     int patternX = 270;
     int patternY = 170;
     addChild(new LCDNumberWidget(patternX, patternY, &m_currentPattern));
-    addParam(ParamWidget::create<Davies1900hSmallBlackSnapKnob>(Vec(patternX, patternY + 40), module, SEQ::PATTERN_PARAM, 0.0, 10.0f, 0.0f));
-    addInput(Port::create<PJ301MPort>(Vec(patternX, patternY + 70), Port::INPUT, module, SEQ::PATTERN_INPUT));
+    addParam(createParam<Davies1900hSmallBlackSnapKnob>(Vec(patternX, patternY + 40), module, SEQModule::PATTERN_PARAM, 0.0, 10.0f, 0.0f));
+    addInput(createInput<PJ301MPort>(Vec(patternX, patternY + 70), module, SEQModule::PATTERN_INPUT));
     addChild(new TextLabelWidget(patternX, patternY - 6, 50, 50, 12, 1.0f, nvgRGB(0x00, 0x00, 0x00), false, "Pattern"));
 
     ShowEditPitchUI(true);
@@ -153,7 +154,7 @@ void SEQ::InitUI(ModuleWidget *moduleWidget, Rect box)
     m_initalized = true;
 }
 
-void SEQ::reset()
+void SEQModule::reset()
 {
     for (int i = 0; i < MAX_STEPS; i++)
     {
@@ -162,14 +163,14 @@ void SEQ::reset()
     }
 }
 
-void SEQ::RandomizeHelper(bool randomPitch, bool randomGate, bool randomSkip)
+void SEQModule::RandomizeHelper(bool randomPitch, bool randomGate, bool randomSkip)
 {
     if (randomPitch)
     {
         float dx = rescale(randomUniform(), 0.0, 1.0, 1.0f, 3.0f);
         for (auto &param : m_editPitchParamUI)
         {
-            //param->setValue(rescalef(randomUniform(), 0.0, 1.0, param->minValue, param->maxValue));
+            //param->setValue(rescale(randomUniform(), 0.0, 1.0, param->minValue, param->maxValue));
             param->setValue(rescale(randomUniform(), 0.0, 1.0, 0.0f, 2.0f) + dx);
         }
     }
@@ -191,12 +192,12 @@ void SEQ::RandomizeHelper(bool randomPitch, bool randomGate, bool randomSkip)
     }
 }
 
-void SEQ::randomize()
+void SEQModule::randomize()
 {
     RandomizeHelper(true, true, true);
 }
 
-void SEQ::step()
+void SEQModule::step()
 {
     if (!m_initalized)
         return;
@@ -228,7 +229,7 @@ void SEQ::step()
     UpdateLights();
 }
 
-void SEQ::UpdateLights()
+void SEQModule::UpdateLights()
 {
     lights[CV_LIGHT].value = m_cvLight;
     for (int iZ = 0; iZ < 16; iZ++)
@@ -240,7 +241,7 @@ void SEQ::UpdateLights()
     lights[GATE_X_OR_Y_LIGHT].value = m_gateXorYLight;
 }
 
-void SEQ::FadeGateLights()
+void SEQModule::FadeGateLights()
 {
     const float lightLambda = 0.075;
     for (int i = 0; i < MAX_STEPS; i++)
@@ -254,7 +255,7 @@ void SEQ::FadeGateLights()
     m_gateXorYLight -= m_gateXorYLight / lightLambda / engineGetSampleRate();
 }
 
-void SEQ::ProcessEditButtons()
+void SEQModule::ProcessEditButtons()
 {
     for (auto &param : m_editGateUI)
     {
@@ -267,7 +268,7 @@ void SEQ::ProcessEditButtons()
     }
 }
 
-void SEQ::ProcessXYTriggers()
+void SEQModule::ProcessXYTriggers()
 {
     bool pulse = m_gatePulse.process(1.0 / engineGetSampleRate());
 
@@ -305,7 +306,7 @@ void SEQ::ProcessXYTriggers()
     }
 }
 
-bool SEQ::ProcessClockAndReset()
+bool SEQModule::ProcessClockAndReset()
 {
     bool nextStep = false;
     if (inputs[EXT_CLOCK_INPUT].active)
@@ -339,7 +340,7 @@ bool SEQ::ProcessClockAndReset()
     return nextStep;
 }
 
-void SEQ::ProcessUIButtons()
+void SEQModule::ProcessUIButtons()
 {
     if (m_pitchEditButton.Process(params))
     {
@@ -372,7 +373,7 @@ void SEQ::ProcessUIButtons()
     }
 }
 
-void SEQ::ShowEditPitchUI(bool showUI)
+void SEQModule::ShowEditPitchUI(bool showUI)
 {
     for (auto &param : m_editPitchUI)
     {
@@ -380,7 +381,7 @@ void SEQ::ShowEditPitchUI(bool showUI)
     }
 }
 
-void SEQ::ShowEditGateUI(bool showUI)
+void SEQModule::ShowEditGateUI(bool showUI)
 {
     for (auto &param : m_editGateUI)
     {
@@ -388,7 +389,7 @@ void SEQ::ShowEditGateUI(bool showUI)
     }
 }
 
-void SEQ::ShowEditSkipUI(bool showUI)
+void SEQModule::ShowEditSkipUI(bool showUI)
 {
     for (auto &param : m_editSkipUI)
     {
@@ -396,11 +397,11 @@ void SEQ::ShowEditSkipUI(bool showUI)
     }
 }
 
-void SEQ::AdvanceStep()
+void SEQModule::AdvanceStep()
 {
     float patternScale = clamp(params[PATTERN_PARAM].value + inputs[PATTERN_INPUT].value, 0.0f, 10.0f);
     patternScale /= 10.0f;
-    m_currentPattern = clamp(static_cast<int>(roundf(patternScale * m_patterns.size())), 1, m_patterns.size());
+    m_currentPattern = clamp((int)roundf(patternScale * m_patterns.size()), 1, m_patterns.size());
 
     m_lastStepIndex = m_currentStepIndex;
     float stepsScale = clamp(params[STEPS_PARAM].value + inputs[STEPS_INPUT].value, 0.0f, 10.0f);
@@ -408,7 +409,7 @@ void SEQ::AdvanceStep()
     //write_log(10, "stepsScale=%f params[STEPS_PARAM].value: %f inputs[STEPS_INPUT].value: %f\n", stepsScale, params[STEPS_PARAM].value, inputs[STEPS_INPUT].value);
 
     int maxStepsInPattern = m_patterns[m_currentPattern - 1].size();
-    int numSteps = clamp(static_cast<int>(roundf(stepsScale * maxStepsInPattern)), 1, maxStepsInPattern);
+    int numSteps = clamp((int)roundf(stepsScale * maxStepsInPattern), 1, maxStepsInPattern);
 
     for (int skipAttempts = 0; skipAttempts < MAX_STEPS; skipAttempts++)
     {
@@ -440,31 +441,31 @@ void SEQ::AdvanceStep()
     m_gatePulse.trigger(1e-3);
 }
 
-Widget *SEQ::addChild(Widget *widget)
+Widget *SEQModule::addChild(Widget *widget)
 {
     m_moduleWidget->addChild(widget);
     return widget;
 }
 
-ParamWidget *SEQ::addParam(ParamWidget *param)
+ParamWidget *SEQModule::addParam(ParamWidget *param)
 {
     m_moduleWidget->addParam(param);
     return param;
 }
 
-Port *SEQ::addInput(Port *input)
+Port *SEQModule::addInput(Port *input)
 {
     m_moduleWidget->addInput(input);
     return input;
 }
 
-Port *SEQ::addOutput(Port *output)
+Port *SEQModule::addOutput(Port *output)
 {
     m_moduleWidget->addOutput(output);
     return output;
 }
 
-json_t *SEQ::toJson()
+json_t *SEQModule::toJson()
 {
     json_t *rootJ = json_object();
 
@@ -496,7 +497,7 @@ json_t *SEQ::toJson()
     return rootJ;
 }
 
-void SEQ::fromJson(json_t *rootJ)
+void SEQModule::fromJson(json_t *rootJ)
 {
     // running
     json_t *runningJ = json_object_get(rootJ, "running");
@@ -532,5 +533,3 @@ void SEQ::fromJson(json_t *rootJ)
     if (gateModeJ)
         m_gateMode = (GateMode)json_integer_value(gateModeJ);
 }
-
-
