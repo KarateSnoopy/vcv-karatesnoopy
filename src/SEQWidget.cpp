@@ -3,7 +3,7 @@
 #include "dsp/digital.hpp"
 #include "utils.h"
 #include "SeqModule.h"
-#include "SeqWidget.h"
+#include "SEQWidget.h"
 
 using namespace rack;
 

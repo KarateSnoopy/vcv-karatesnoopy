@@ -1,5 +1,5 @@
 #include "PluginInit.h"
-#include "SeqWidget.h"
+#include "SEQWidget.h"
 #include "SeqModule.h"
 
 #include "rack.hpp"
