@@ -4,7 +4,6 @@
 #include "utils.h"
 #include "LCDNumberWidget.h"
 #include "TextLabelWidget.h"
-#include "SEQModule.h"
 
 #define MAX_STEPS 16
 
