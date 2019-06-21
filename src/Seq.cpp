@@ -569,4 +569,4 @@ struct KSnoopySEQWidget : ModuleWidget
     }
 };
 
-Model* modelSeq = createModel<KSnoopySEQ, KSnoopySEQWidget>("KSnpy 2D Grid Seq");
+Model* modelSeq = createModel<KSnoopySEQ, KSnoopySEQWidget>("KSnpy2DGridSeq");
